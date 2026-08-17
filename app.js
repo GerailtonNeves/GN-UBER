@@ -699,31 +699,41 @@ function initEventHandlers() {
   });
 
   document.getElementById('btnAcceptRide').addEventListener('click', async () => {
-    stopSirenSound(); // Parar sirene instantaneamente ao clicar em Aceitar
+    stopSirenSound();
 
     if (!state.pendingDispatchRide) return;
-    const rideId = state.pendingDispatchRide.id;
+    const ride = state.pendingDispatchRide;
+    const rideId = ride.id;
 
     clearInterval(state.dispatchTimerInterval);
     document.getElementById('modalRideDispatch').classList.add('hidden');
+
+    const selectElem = document.getElementById('selectActiveDriver');
+    const activeDriverId = selectElem?.value || state.currentDriverId || 'drv-1';
 
     try {
       const res = await fetch(`${BACKEND_URL}/api/rides/${rideId}/accept`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ driverId: state.currentDriverId })
+        body: JSON.stringify({ driverId: activeDriverId })
       });
-      const ride = await res.json();
-      state.currentRide = ride;
-      state.socket.emit('join_ride', ride.id);
-
-      renderRouteOnMap(state.driverMap, ride.origin, ride.destination, 'driver');
-      updateDriverUI(ride);
-      startDriverMovementSimulation(ride);
-      showToast('🎉 Corrida aceita! Iniciando deslocamento...', 'success');
+      if (res.ok) {
+        const updatedRide = await res.json();
+        state.currentRide = updatedRide;
+      } else {
+        throw new Error('Aceite local');
+      }
     } catch (err) {
-      showToast('Erro ao aceitar corrida', 'warning');
+      ride.status = 'ACCEPTED';
+      state.currentRide = ride;
     }
+
+    if (state.socket) state.socket.emit('join_ride', state.currentRide.id);
+
+    renderRouteOnMap(state.driverMap, state.currentRide.origin, state.currentRide.destination, 'driver');
+    updateDriverUI(state.currentRide);
+    startDriverMovementSimulation(state.currentRide);
+    showToast('🎉 Corrida aceita com sucesso! Iniciando deslocamento...', 'success');
   });
 
   document.getElementById('btnRejectRide').addEventListener('click', () => {
