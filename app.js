@@ -1380,6 +1380,56 @@ window.toggleBlockDriver = async function(driverId) {
   renderOnlineFleetOnPassengerMap();
 };
 
+window.toggleDriverOnlineStatus = async function(driverId) {
+  const persisted = getPersistedDrivers();
+  let driver = (state.localDrivers || []).find(d => d.id === driverId) || persisted.find(d => d.id === driverId);
+
+  if (!driver) {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/drivers`);
+      const allD = await res.json();
+      driver = Array.isArray(allD) ? allD.find(d => d.id === driverId) : null;
+    } catch(e) {}
+  }
+
+  if (!driver) {
+    showToast('Motorista não encontrado.', 'warning');
+    return;
+  }
+
+  const isCurrentOnline = driver.status === 'online';
+  const newStatus = isCurrentOnline ? 'offline' : 'online';
+  driver.status = newStatus;
+  driver.verified = true;
+
+  if (state.localDrivers) {
+    const loc = state.localDrivers.find(d => d.id === driverId);
+    if (loc) { loc.status = newStatus; loc.verified = true; }
+  }
+
+  try {
+    const current = getPersistedDrivers();
+    const target = current.find(d => d.id === driverId);
+    if (target) {
+      target.status = newStatus;
+      target.verified = true;
+      localStorage.setItem('uberflow_drivers', JSON.stringify(current));
+    }
+  } catch (e) {}
+
+  try {
+    await fetch(`${BACKEND_URL}/api/drivers/${driverId}/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus })
+    });
+  } catch (err) {}
+
+  showToast(`⚡ Status de "${driver.name}" alterado para: ${newStatus === 'online' ? '🟢 ONLINE' : '🔴 OFFLINE'}!`, newStatus === 'online' ? 'success' : 'info');
+  loadAdminDrivers();
+  renderOnlineFleetOnPassengerMap();
+};
+
 window.editDriver = function(driverId) {
   const persisted = getPersistedDrivers();
   const driver = (state.localDrivers || []).find(d => d.id === driverId) || persisted.find(d => d.id === driverId);
@@ -1483,7 +1533,11 @@ async function loadAdminDrivers() {
             <strong>${isMoto ? '🏍️ Moto' : '🚗 Carro'} • ${vehicleModel} (${vehicleColor})</strong><br>
             <span class="plate-badge-official">${vehiclePlate}</span>
           </td>
-          <td><span class="badge" style="color: ${d.status === 'online' ? '#10b981' : '#94a3b8'}; font-weight: 700;">${(d.status || 'OFFLINE').toUpperCase()}</span></td>
+          <td>
+            <button class="${d.status === 'online' ? 'btn-success' : 'btn-secondary'}" style="padding: 5px 10px; font-size: 0.75rem; font-weight: 800; border-radius: 20px; cursor: pointer;" onclick="window.toggleDriverOnlineStatus('${d.id}')" title="Clique para alternar entre ONLINE e OFFLINE">
+              ${d.status === 'online' ? '🟢 ONLINE' : '🔴 OFFLINE'}
+            </button>
+          </td>
           <td><span style="color: ${d.verified ? '#10b981' : '#f59e0b'}; font-weight: 700;">${d.verified ? '✅ CNH Aprovada' : '⏳ CNH Pendente'}</span></td>
           <td>
             <div style="display: flex; gap: 4px; flex-wrap: wrap;">
