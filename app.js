@@ -1019,6 +1019,21 @@ function addChatMessage(msg) {
   box.scrollTop = box.scrollHeight;
 }
 
+window.toggleVerifyDriver = async function(driverId, verified) {
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/drivers/${driverId}/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ verified })
+    });
+    const data = await res.json();
+    showToast(`🎉 Documentos de "${data.driver?.name || 'Motorista'}" ${verified ? 'APROVADOS com sucesso!' : 'desativados.'}`, verified ? 'success' : 'info');
+    loadAdminDrivers();
+  } catch (err) {
+    showToast('Erro ao alterar verificação do motorista', 'warning');
+  }
+};
+
 async function loadAdminDrivers() {
   try {
     const res = await fetch(`${BACKEND_URL}/api/drivers`);
@@ -1026,48 +1041,42 @@ async function loadAdminDrivers() {
     const tbody = document.getElementById('adminDriversTable');
     const selectActive = document.getElementById('selectActiveDriver');
 
-    tbody.innerHTML = '';
-    selectActive.innerHTML = '';
+    if (tbody) tbody.innerHTML = '';
+    if (selectActive) selectActive.innerHTML = '';
 
     drivers.forEach(d => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><strong>${d.name}</strong><br><small>${d.phone}</small></td>
-        <td>${d.vehicle.model}<br><small>${d.vehicle.plate}</small></td>
-        <td><span class="badge" style="color: ${d.status === 'online' ? '#10b981' : '#94a3b8'}">${d.status.toUpperCase()}</span></td>
-        <td><span style="color: ${d.verified ? '#10b981' : '#f59e0b'}">${d.verified ? 'Aprovado' : 'Pendente'}</span></td>
-        <td>
-          <button class="btn-secondary" style="padding: 4px 8px; font-size: 0.7rem;" onclick="toggleVerifyDriver('${d.id}', ${!d.verified})">
-            ${d.verified ? 'Desativar' : 'Aprovar'}
-          </button>
-        </td>
-      `;
-      tbody.appendChild(tr);
+      if (tbody) {
+        const isMoto = d.vehicle?.type === 'moto' || d.vehicle?.type === 'delivery';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${d.name}</strong><br><small style="color: var(--text-muted);">${d.phone}</small></td>
+          <td>
+            <strong>${isMoto ? '🏍️' : '🚗'} ${d.vehicle?.model || 'Veículo'} (${d.vehicle?.color || 'Preto'})</strong><br>
+            <span class="plate-badge-official">${d.vehicle?.plate || 'PLACA'}</span>
+          </td>
+          <td><span class="badge" style="color: ${d.status === 'online' ? '#10b981' : '#94a3b8'}; font-weight: 700;">${d.status.toUpperCase()}</span></td>
+          <td><span style="color: ${d.verified ? '#10b981' : '#f59e0b'}; font-weight: 700;">${d.verified ? '✅ CNH Aprovada' : '⏳ CNH Pendente'}</span></td>
+          <td>
+            <button class="${d.verified ? 'btn-secondary' : 'btn-success'}" style="padding: 6px 12px; font-size: 0.75rem; font-weight: 700; border-radius: 6px; cursor: pointer;" onclick="window.toggleVerifyDriver('${d.id}', ${!d.verified})">
+              ${d.verified ? '❌ Desativar' : '✅ APROVAR AGORA'}
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      }
 
-      const opt = document.createElement('option');
-      opt.value = d.id;
-      opt.innerText = `${d.name} (${d.vehicle.model})`;
-      if (d.id === state.currentDriverId) opt.selected = true;
-      selectActive.appendChild(opt);
+      if (selectActive) {
+        const opt = document.createElement('option');
+        opt.value = d.id;
+        opt.innerText = `${d.vehicle?.type === 'moto' ? '🏍️' : '🚗'} ${d.name} (${d.vehicle?.model}) ${d.verified ? '✅ Aprovado' : '⏳ Pendente'}`;
+        if (d.id === state.currentDriverId) opt.selected = true;
+        selectActive.appendChild(opt);
+      }
     });
 
     document.getElementById('adminTotalDrivers').innerText = drivers.length;
   } catch (err) {
     console.log('Erro ao carregar motoristas');
-  }
-}
-
-async function toggleVerifyDriver(driverId, verified) {
-  try {
-    await fetch(`${BACKEND_URL}/api/drivers/${driverId}/verify`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ verified })
-    });
-    showToast('Status do motorista alterado com sucesso!', 'success');
-    loadAdminDrivers();
-  } catch (err) {
-    showToast('Erro ao alterar verificação do motorista', 'warning');
   }
 }
 
