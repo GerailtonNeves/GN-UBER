@@ -312,25 +312,22 @@ window.setPresetDestination = function(key) {
 
 async function geocodeAddressText(query, type = 'origin') {
   if (!query || query.trim() === '') return null;
+  const cleanQuery = query.trim();
 
-  // 1. Se o usuário escolheu via Autocomplete ou Ponto Clicado no Mapa
-  if (type === 'origin' && state.customOrigin) return state.customOrigin;
-  if (type === 'destination' && state.customDestination) return state.customDestination;
+  if (type === 'origin' && state.customOrigin && state.customOrigin.name === cleanQuery) return state.customOrigin;
+  if (type === 'destination' && state.customDestination && state.customDestination.name === cleanQuery) return state.customDestination;
 
-  // 2. Se for um dos atalhos famosos
-  const qUpper = query.toUpperCase();
-  if (qUpper.includes('MASP')) return LOCATIONS.MASP;
-  if (qUpper.includes('CONGONHAS')) return LOCATIONS.CONGONHAS;
-  if (qUpper.includes('IBIRAPUERA')) return LOCATIONS.IBIRAPUERA;
-  if (qUpper.includes('SÉ') || qUpper.includes('SE')) return LOCATIONS.SE;
+  const qUpper = cleanQuery.toUpperCase();
+  if (qUpper.includes('MASP')) return { ...LOCATIONS.MASP, name: cleanQuery };
+  if (qUpper.includes('CONGONHAS')) return { ...LOCATIONS.CONGONHAS, name: cleanQuery };
+  if (qUpper.includes('IBIRAPUERA')) return { ...LOCATIONS.IBIRAPUERA, name: cleanQuery };
 
-  // 3. Buscar no Nominatim OpenStreetMap em tempo real
   try {
-    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`);
+    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(cleanQuery)}`);
     const data = await response.json();
     if (data && data.length > 0) {
       return {
-        name: query,
+        name: cleanQuery,
         lat: parseFloat(data[0].lat),
         lng: parseFloat(data[0].lon)
       };
@@ -339,11 +336,10 @@ async function geocodeAddressText(query, type = 'origin') {
     console.log('Erro no geocoding:', err);
   }
 
-  // 4. Garantia Infalível: Gerar coordenadas reais nas imediações de São Paulo
   return {
-    name: query,
-    lat: LOCATIONS.MASP.lat + (type === 'origin' ? 0 : 0.025),
-    lng: LOCATIONS.MASP.lng + (type === 'origin' ? 0 : 0.025)
+    name: cleanQuery,
+    lat: LOCATIONS.MASP.lat + (type === 'origin' ? 0.005 : 0.035),
+    lng: LOCATIONS.MASP.lng + (type === 'origin' ? 0.005 : 0.035)
   };
 }
 
@@ -730,10 +726,23 @@ function initEventHandlers() {
 
     if (state.socket) state.socket.emit('join_ride', state.currentRide.id);
 
+    // Alternar automaticamente para a visualização/mapa do motorista
+    if (state.activeMode === 'passenger') {
+      const tabDriver = document.querySelector('.tab-btn[data-mode="driver"]');
+      if (tabDriver) tabDriver.click();
+    }
+
+    setTimeout(() => {
+      if (state.driverMap) {
+        state.driverMap.invalidateSize();
+        state.driverMap.flyTo([state.currentRide.origin.lat, state.currentRide.origin.lng], 15, { animate: true });
+      }
+    }, 200);
+
     renderRouteOnMap(state.driverMap, state.currentRide.origin, state.currentRide.destination, 'driver');
     updateDriverUI(state.currentRide);
     startDriverMovementSimulation(state.currentRide);
-    showToast('🎉 Corrida aceita com sucesso! Iniciando deslocamento...', 'success');
+    showToast('🎉 Corrida aceita! Mapa aberto para navegar até o cliente...', 'success');
   });
 
   document.getElementById('btnRejectRide').addEventListener('click', () => {
@@ -1212,6 +1221,82 @@ window.toggleVerifyDriver = async function(driverId, verified) {
   loadAdminDrivers();
 };
 
+window.deleteDriver = async function(driverId) {
+  if (!confirm('Tem certeza que deseja EXCLUIR este motorista do sistema?')) return;
+
+  if (state.localDrivers) {
+    state.localDrivers = state.localDrivers.filter(d => d.id !== driverId);
+  }
+  try {
+    const current = getPersistedDrivers().filter(d => d.id !== driverId);
+    localStorage.setItem('uberflow_drivers', JSON.stringify(current));
+  } catch (e) {}
+
+  try {
+    await fetch(`${BACKEND_URL}/api/drivers/${driverId}`, { method: 'DELETE' });
+    showToast('🗑️ Motorista excluído do sistema com sucesso!', 'info');
+  } catch (err) {
+    showToast('🗑️ Motorista excluído localmente.', 'info');
+  }
+
+  loadAdminDrivers();
+  renderOnlineFleetOnPassengerMap();
+};
+
+window.toggleBlockDriver = async function(driverId) {
+  let isBlocked = false;
+
+  if (state.localDrivers) {
+    const target = state.localDrivers.find(d => d.id === driverId);
+    if (target) {
+      target.blocked = !target.blocked;
+      if (target.blocked) target.status = 'offline';
+      isBlocked = target.blocked;
+    }
+  }
+
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/drivers/${driverId}/block`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await res.json();
+    if (data && data.driver) isBlocked = data.driver.blocked;
+  } catch (err) {}
+
+  showToast(`Status do motorista: ${isBlocked ? '🚫 BLOQUEADO' : '✅ DESBLOQUEADO'}`, isBlocked ? 'warning' : 'success');
+  loadAdminDrivers();
+  renderOnlineFleetOnPassengerMap();
+};
+
+window.editDriver = function(driverId) {
+  const persisted = getPersistedDrivers();
+  const driver = (state.localDrivers || []).find(d => d.id === driverId) || persisted.find(d => d.id === driverId);
+  
+  if (!driver) {
+    showToast('Motorista não encontrado para edição.', 'warning');
+    return;
+  }
+
+  const newName = prompt('Alterar Nome Completo do Motorista:', driver.name);
+  if (!newName) return;
+  const newPhone = prompt('Alterar Telefone / WhatsApp:', driver.phone || '(11) 99999-9999');
+  const newModel = prompt('Alterar Modelo do Veículo:', driver.vehicle?.model || 'Honda CG 160');
+  const newColor = prompt('Alterar Cor do Veículo:', driver.vehicle?.color || 'Preto');
+  const newPlate = prompt('Alterar Placa do Veículo:', driver.vehicle?.plate || 'ABC-1234');
+
+  driver.name = newName;
+  if (newPhone) driver.phone = newPhone;
+  if (!driver.vehicle) driver.vehicle = {};
+  if (newModel) driver.vehicle.model = newModel;
+  if (newColor) driver.vehicle.color = newColor;
+  if (newPlate) driver.vehicle.plate = newPlate;
+
+  savePersistedDriver(driver);
+  showToast(`✏️ Dados do motorista "${newName}" atualizados!`, 'success');
+  loadAdminDrivers();
+};
+
 async function loadAdminDrivers() {
   try {
     let drivers = [];
@@ -1224,14 +1309,14 @@ async function loadAdminDrivers() {
 
     if (!Array.isArray(drivers)) drivers = [];
 
-    // Mesclar motoristas salvos no localStorage (GARANTE QUE NUNCA SOMEM AO APERTAR F5)
     const persisted = getPersistedDrivers();
     persisted.forEach(pd => {
       const existing = drivers.find(d => d.id === pd.id);
       if (!existing) {
         drivers.push(pd);
-      } else if (pd.verified !== undefined) {
-        existing.verified = pd.verified;
+      } else {
+        if (pd.verified !== undefined) existing.verified = pd.verified;
+        if (pd.blocked !== undefined) existing.blocked = pd.blocked;
       }
     });
 
@@ -1274,11 +1359,15 @@ async function loadAdminDrivers() {
       const vehicleModel = d.vehicle?.model || 'Veículo';
       const vehicleColor = d.vehicle?.color || 'Preto';
       const vehiclePlate = d.vehicle?.plate || 'PLACA-00';
+      const isBlocked = d.blocked;
 
       if (tbody) {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td><strong>${d.name}</strong><br><small style="color: var(--text-muted);">${d.phone || '(11) 99999-9999'}</small></td>
+          <td>
+            <strong>${d.name}</strong> ${isBlocked ? '<span style="color: #ef4444; font-weight: bold; font-size: 0.75rem;"> [🚫 BLOQUEADO]</span>' : ''}<br>
+            <small style="color: var(--text-muted);">${d.phone || '(11) 99999-9999'}</small>
+          </td>
           <td>
             <strong>${isMoto ? '🏍️ Moto' : '🚗 Carro'} • ${vehicleModel} (${vehicleColor})</strong><br>
             <span class="plate-badge-official">${vehiclePlate}</span>
@@ -1286,9 +1375,20 @@ async function loadAdminDrivers() {
           <td><span class="badge" style="color: ${d.status === 'online' ? '#10b981' : '#94a3b8'}; font-weight: 700;">${(d.status || 'OFFLINE').toUpperCase()}</span></td>
           <td><span style="color: ${d.verified ? '#10b981' : '#f59e0b'}; font-weight: 700;">${d.verified ? '✅ CNH Aprovada' : '⏳ CNH Pendente'}</span></td>
           <td>
-            <button class="${d.verified ? 'btn-secondary' : 'btn-success'}" style="padding: 6px 12px; font-size: 0.75rem; font-weight: 700; border-radius: 6px; cursor: pointer;" onclick="window.toggleVerifyDriver('${d.id}', ${!d.verified})">
-              ${d.verified ? '❌ Desativar' : '✅ APROVAR AGORA'}
-            </button>
+            <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+              <button class="${d.verified ? 'btn-secondary' : 'btn-success'}" style="padding: 4px 8px; font-size: 0.7rem; font-weight: 700; border-radius: 6px; cursor: pointer;" onclick="window.toggleVerifyDriver('${d.id}', ${!d.verified})">
+                ${d.verified ? 'Desativar' : 'Aprovar'}
+              </button>
+              <button class="btn-secondary" style="padding: 4px 8px; font-size: 0.7rem; font-weight: 700; border-radius: 6px; cursor: pointer;" onclick="window.editDriver('${d.id}')">
+                ✏️ Editar
+              </button>
+              <button class="${isBlocked ? 'btn-success' : 'btn-secondary'}" style="padding: 4px 8px; font-size: 0.7rem; font-weight: 700; border-radius: 6px; cursor: pointer;" onclick="window.toggleBlockDriver('${d.id}')">
+                ${isBlocked ? '🔓 Liberar' : '🚫 Bloquear'}
+              </button>
+              <button style="padding: 4px 8px; font-size: 0.7rem; font-weight: 700; border-radius: 6px; cursor: pointer; background: #ef4444; color: white; border: none;" onclick="window.deleteDriver('${d.id}')">
+                🗑️ Excluir
+              </button>
+            </div>
           </td>
         `;
         tbody.appendChild(tr);
@@ -1297,7 +1397,7 @@ async function loadAdminDrivers() {
       if (selectActive) {
         const opt = document.createElement('option');
         opt.value = d.id;
-        opt.innerText = `${isMoto ? '🏍️' : '🚗'} ${d.name} (${vehicleModel}) ${d.verified ? '✅ Aprovado' : '⏳ Pendente'}`;
+        opt.innerText = `${isMoto ? '🏍️' : '🚗'} ${d.name} (${vehicleModel}) ${isBlocked ? '🚫 Bloqueado' : (d.verified ? '✅ Aprovado' : '⏳ Pendente')}`;
         if (d.id === state.currentDriverId) opt.selected = true;
         selectActive.appendChild(opt);
       }
