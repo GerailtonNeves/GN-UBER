@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UberFlow Engine v2.0 - Plataforma On-Demand de Transporte</title>
+  
+  <!-- App Icons & Favicon -->
+  <link rel="icon" type="image/jpeg" href="assets/icon_passageiro.jpg" />
+  <link rel="apple-touch-icon" href="assets/icon_passageiro.jpg" />
+
+  <!-- CSS External Libraries -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="logo">
+      <div class="logo-icon-wrap"><i class="fa-solid fa-car-side logo-icon"></i></div>
+      <div class="logo-text">
+        <span>UBER<strong>FLOW</strong></span>
+        <small class="version">v2.0 Enterprise Engine</small>
+      </div>
+      <span class="badge-live"><i class="fa-solid fa-circle blink"></i> LIVE ENGINE</span>
+    </div>
+
+    <!-- Mode Selector Tabs -->
+    <nav class="mode-tabs">
+      <button class="tab-btn active" data-mode="split">
+        <i class="fa-solid fa-columns"></i> Simulação Dupla (Lado a Lado)
+      </button>
+      <button class="tab-btn" data-mode="passenger">
+        <i class="fa-solid fa-user"></i> App Passageiro
+      </button>
+      <button class="tab-btn" data-mode="driver">
+        <i class="fa-solid fa-id-card"></i> App Motorista / Moto
+      </button>
+      <button class="tab-btn" data-mode="admin">
+        <i class="fa-solid fa-gears"></i> Painel Admin
+      </button>
+    </nav>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-container" id="mainLayout">
+
+    <!-- PASSENGER APP SECTION -->
+    <section class="app-panel passenger-panel" id="panelPassenger">
+      <div class="panel-header">
+        <h2><i class="fa-solid fa-location-dot"></i> Passageiro - Solicitar Viagem ou Entrega</h2>
+        <div class="header-actions">
+          <button id="btnOpenModalPassenger" class="btn-secondary btn-sm"><i class="fa-solid fa-user-plus"></i> Novo Passageiro</button>
+          <span class="status-chip" id="passengerStatus">Pronto para viajar</span>
+        </div>
+      </div>
+
+      <!-- Map View -->
+      <div class="map-container">
+        <div id="mapPassenger" class="leaflet-map"></div>
+        
+        <!-- Address Floating Bar -->
+        <div class="map-controls-floating">
+          <div class="input-group input-group-relative">
+            <i class="fa-solid fa-circle-dot origin-icon"></i>
+            <input type="text" id="inputOrigin" class="address-input" placeholder="Comece a digitar a rua de origem..." value="MASP - Av. Paulista, 1578" autocomplete="off" />
+            <button type="button" class="btn-icon" id="btnSearchOrigin" title="Buscar Origem"><i class="fa-solid fa-magnifying-glass"></i></button>
+            <div id="suggestionsOrigin" class="autocomplete-dropdown hidden"></div>
+          </div>
+          
+          <div class="input-group input-group-relative">
+            <i class="fa-solid fa-location-pin dest-icon"></i>
+            <input type="text" id="inputDestination" class="address-input" placeholder="Comece a digitar a rua de destino..." value="Parque Ibirapuera - Portão 3" autocomplete="off" />
+            <button type="button" class="btn-icon" id="btnSearchDest" title="Buscar Destino"><i class="fa-solid fa-magnifying-glass"></i></button>
+            <div id="suggestionsDest" class="autocomplete-dropdown hidden"></div>
+          </div>
+
+          <!-- Quick Address Chips -->
+          <div class="quick-chips">
+            <span class="chip-title">Atalhos:</span>
+            <button type="button" class="chip-btn" onclick="setPresetDestination('MASP')">📍 MASP</button>
+            <button type="button" class="chip-btn" onclick="setPresetDestination('CONGONHAS')">✈️ Congonhas</button>
+            <button type="button" class="chip-btn" onclick="setPresetDestination('IBIRAPUERA')">🌳 Ibirapuera</button>
+            <button type="button" class="chip-btn" onclick="setPresetDestination('SE')">🏛️ Sé</button>
+          </div>
+
+          <div class="map-hint">
+            <small><i class="fa-solid fa-mouse-pointer"></i> <strong>Dica:</strong> Clique direto no mapa para marcar a Origem (🟢) e Destino (🔴)!</small>
+          </div>
+
+          <button id="btnCalculateFare" class="btn-primary full-width">
+            <i class="fa-solid fa-calculator"></i> Calcular Estimativa de Tarifa
+          </button>
+        </div>
+      </div>
+
+      <!-- Fare Categories & Booking Card -->
+      <div class="booking-card hidden" id="cardBooking">
+        <h3>Selecione a Modalidade</h3>
+        <div class="categories-grid" id="categoriesGrid">
+          <!-- Populated by JS -->
+        </div>
+
+        <div class="payment-method-selector">
+          <label><i class="fa-solid fa-wallet"></i> Forma de Pagamento:</label>
+          <select id="selectPayment">
+            <option value="pix">⚡ PIX Instantâneo</option>
+            <option value="credit_card">💳 Cartão de Crédito (Mastercard **** 4321)</option>
+            <option value="cash">💵 Dinheiro ao Motorista</option>
+          </select>
+        </div>
+
+        <button id="btnRequestRide" class="btn-success full-width pulse">
+          <i class="fa-solid fa-car"></i> Confirmar e Solicitar Viagem
+        </button>
+      </div>
+
+      <!-- Live Ride Tracker Card (Active Ride) -->
+      <div class="active-ride-card hidden" id="cardActiveRide">
+        <div class="searching-state" id="stateSearching">
+          <div class="radar-spinner"></div>
+          <h4>Procurando motoristas próximos...</h4>
+          <p style="color: #f59e0b; font-weight: 600;">⚠️ Ligue a chave <strong>ONLINE</strong> no painel do motorista (lado direito) para aceitar!</p>
+          <button id="btnAutoMatch" class="btn-primary btn-sm" style="margin-top: 10px;">
+            <i class="fa-solid fa-bolt"></i> Aceitar Corrida com o Motorista Mais Próximo
+          </button>
+        </div>
+
+        <div class="matched-driver-info hidden" id="matchedDriverInfo">
+          <div class="driver-profile-header">
+            <div class="avatar"><i class="fa-solid fa-user-tie"></i></div>
+            <div class="details">
+              <h4 id="rideDriverName">Carlos Silva</h4>
+              <p><i class="fa-solid fa-star star"></i> <span id="rideDriverRating">4.9</span> • <span id="rideDriverVehicleType">🚘 Carro</span></p>
+              <div class="vehicle-trust-box">
+                <span class="vehicle-model" id="rideDriverVehicleModel">Toyota Corolla (Vermelho)</span>
+                <span class="plate-badge-official" id="rideDriverPlate">ABC-1D23</span>
+              </div>
+            </div>
+            <div class="action-call">
+              <button class="btn-circle" onclick="showToast('📞 Ligação iniciada para o motorista...', 'info')" title="Ligar para o Motorista"><i class="fa-solid fa-phone"></i></button>
+            </div>
+          </div>
+          <div class="security-badge-trust">
+            <i class="fa-solid fa-shield-halved"></i> <span>Veículo Verificado e Rastreado em Tempo Real</span>
+          </div>
+
+          <div class="ride-progress-bar">
+            <div class="step" id="stepAccepted"><span>1</span> Aceito</div>
+            <div class="step" id="stepArrived"><span>2</span> No Local</div>
+            <div class="step" id="stepInProgress"><span>3</span> Em Viagem</div>
+            <div class="step" id="stepCompleted"><span>4</span> Finalizado</div>
+          </div>
+
+          <div class="ride-summary-mini">
+            <div><span>Valor Total:</span> <strong id="rideSummaryPrice">R$ 18,50</strong></div>
+            <div><span>Pagamento:</span> <span id="rideSummaryPay">PIX</span></div>
+          </div>
+
+          <!-- Chat Box -->
+          <div class="chat-container">
+            <div class="chat-messages" id="chatBox">
+              <div class="msg system">Corrida iniciada no sistema UberFlow Engine.</div>
+            </div>
+            <div class="chat-input">
+              <input type="text" id="inputChatMsg" placeholder="Enviar mensagem ao motorista..." />
+              <button id="btnSendChat"><i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DRIVER APP SECTION -->
+    <section class="app-panel driver-panel" id="panelDriver">
+      <div class="panel-header">
+        <h2><i class="fa-solid fa-car"></i> Painel do Motorista / Moto</h2>
+        <div class="header-actions">
+          <select id="selectActiveDriver" class="driver-select">
+            <option value="drv-1">Carlos (Carro Corolla)</option>
+            <option value="drv-2">Ana (Carro Civic)</option>
+            <option value="drv-3">Marcos (Moto CB 300)</option>
+          </select>
+          <button id="btnOpenModalDriver" class="btn-secondary btn-sm"><i class="fa-solid fa-plus"></i> Nova Moto/Carro</button>
+          <div class="toggle-online">
+            <span id="driverStatusLabel">OFFLINE</span>
+            <label class="switch">
+              <input type="checkbox" id="toggleDriverOnline">
+              <span class="slider round"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Map View -->
+      <div class="map-container">
+        <div id="mapDriver" class="leaflet-map"></div>
+      </div>
+
+      <!-- Driver Controls & Earnings Box -->
+      <div class="driver-dashboard-footer">
+        <div class="earnings-summary">
+          <div class="earning-box">
+            <span class="label">Ganhos do Dia</span>
+            <strong class="val" id="driverEarningsTotal">R$ 345,50</strong>
+          </div>
+          <div class="earning-box">
+            <span class="label">Corridas Concluídas</span>
+            <strong class="val" id="driverRidesCount">14</strong>
+          </div>
+          <div class="earning-box">
+            <span class="label">Avaliação</span>
+            <strong class="val"><i class="fa-solid fa-star star"></i> 4.90</strong>
+          </div>
+        </div>
+
+        <div class="driver-active-actions hidden" id="driverActions">
+          <h4 id="driverCurrentRideTitle">Corrida em Andamento</h4>
+          <p id="driverCurrentRideSub">Passageiro: Fernanda Lima</p>
+
+          <div class="action-buttons-group">
+            <button id="btnDriverArrived" class="btn-warning"><i class="fa-solid fa-bullseye"></i> Cheguei ao Local</button>
+            <button id="btnDriverStart" class="btn-primary hidden"><i class="fa-solid fa-play"></i> Iniciar Viagem</button>
+            <button id="btnDriverComplete" class="btn-success hidden"><i class="fa-solid fa-flag-checkered"></i> Finalizar Viagem</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Inbound Ride Request (Dispatch Alert) -->
+      <div class="modal-overlay hidden" id="modalRideDispatch">
+        <div class="modal-card dispatch-modal">
+          <div class="modal-header">
+            <span class="badge-alert"><i class="fa-solid fa-bell"></i> NOVA CORRIDA RECEBIDA</span>
+            <div class="timer-countdown" id="dispatchTimer">15s</div>
+          </div>
+          <div class="dispatch-details">
+            <h2 id="dispatchFare">R$ 22,40</h2>
+            <div class="dispatch-category-badge" id="dispatchCategory">🏍️ Moto Rápidas</div>
+            <div class="dispatch-proximity-badge" id="dispatchProximity"><i class="fa-solid fa-crosshairs"></i> 📍 Você é o motorista mais próximo (a 0.8 km do cliente)</div>
+            <p class="passenger-name"><i class="fa-solid fa-user"></i> <span id="dispatchPassenger">Fernanda Lima</span> (⭐ 4.9)</p>
+            <div class="route-preview">
+              <div><i class="fa-solid fa-circle origin-dot"></i> <span id="dispatchOrigin">MASP - Av. Paulista</span></div>
+              <div class="line"></div>
+              <div><i class="fa-solid fa-location-pin dest-dot"></i> <span id="dispatchDest">Parque Ibirapuera</span></div>
+            </div>
+            <div class="meta-pills">
+              <span><i class="fa-solid fa-road"></i> <span id="dispatchDistance">4.2 km</span></span>
+              <span><i class="fa-solid fa-clock"></i> <span id="dispatchTime">12 min</span></span>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button id="btnRejectRide" class="btn-secondary"><i class="fa-solid fa-xmark"></i> Recusar</button>
+            <button id="btnAcceptRide" class="btn-success-large pulse"><i class="fa-solid fa-check"></i> ACEITAR CORRIDA</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ADMIN DASHBOARD SECTION -->
+    <section class="app-panel admin-panel" id="panelAdmin">
+      <div class="panel-header">
+        <h2><i class="fa-solid fa-chart-line"></i> Backoffice Administrativo</h2>
+        <span class="badge-admin"><i class="fa-solid fa-shield"></i> GESTOR DE FROTA</span>
+      </div>
+
+      <div class="admin-metrics-grid">
+        <div class="metric-card">
+          <div class="icon"><i class="fa-solid fa-car-side"></i></div>
+          <div class="data">
+            <span class="title">Motoristas Cadastrados</span>
+            <strong class="number" id="adminTotalDrivers">4</strong>
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="icon"><i class="fa-solid fa-route"></i></div>
+          <div class="data">
+            <span class="title">Corridas no Sistema</span>
+            <strong class="number" id="adminTotalRides">0</strong>
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="icon"><i class="fa-solid fa-road"></i></div>
+          <div class="data">
+            <span class="title">Total de Km Rodados</span>
+            <strong class="number" id="adminTotalKm">0.0 km</strong>
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="icon"><i class="fa-solid fa-sack-dollar"></i></div>
+          <div class="data">
+            <span class="title">Faturamento da Plataforma</span>
+            <strong class="number" id="adminPlatformRevenue">R$ 0,00</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-body-layout">
+        <!-- Live Rides Table with Km -->
+        <div class="admin-box full-width-box">
+          <h3><i class="fa-solid fa-map-location-dot"></i> Monitoramento de Corridas em Tempo Real</h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Passageiro / Modalidade</th>
+                <th>Trajeto (Origem → Destino)</th>
+                <th>Distância (Km) 🛣️</th>
+                <th>Valor Total (R$)</th>
+                <th>Comissão (%)</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="adminRidesTable">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Driver Verification Table -->
+        <div class="admin-box">
+          <h3><i class="fa-solid fa-id-card"></i> Gestão de Frota & Aprovação de Documentos</h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Motorista</th>
+                <th>Veículo / Placa</th>
+                <th>Status</th>
+                <th>Documentos</th>
+                <th>Ação</th>
+              </tr>
+            </thead>
+            <tbody id="adminDriversTable">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Tariff Configurator Box -->
+        <div class="admin-box">
+          <h3><i class="fa-solid fa-sliders"></i> Configuração de Tarifas & Comissões</h3>
+          <form id="formTariffs" class="tariffs-form">
+            <div class="form-group">
+              <label>Tarifa Base (Bandeirada R$):</label>
+              <input type="number" step="0.5" id="cfgBasePrice" value="5.00">
+            </div>
+            <div class="form-group">
+              <label>Preço por Km (R$):</label>
+              <input type="number" step="0.1" id="cfgPriceKm" value="2.20">
+            </div>
+            <div class="form-group">
+              <label>Preço por Minuto (R$):</label>
+              <input type="number" step="0.05" id="cfgPriceMin" value="0.40">
+            </div>
+            <div class="form-group">
+              <label>Comissão da Plataforma (%):</label>
+              <input type="number" id="cfgFeePercent" value="20">
+            </div>
+            <div class="form-group">
+              <label>Tarifa Dinâmica (Surge Factor):</label>
+              <select id="cfgSurge">
+                <option value="1.0">1.0x (Normal)</option>
+                <option value="1.2">1.2x (Demanda Moderada)</option>
+                <option value="1.5">1.5x (Alta Demanda)</option>
+                <option value="2.0">2.0x (Pico de Chuva / Eventos)</option>
+              </select>
+            </div>
+        <!-- Promo Zones Box -->
+        <div class="admin-box">
+          <h3><i class="fa-solid fa-tags"></i> Mapear Zona Promocional / Desconto</h3>
+          <form id="formPromoZone" class="tariffs-form">
+            <div class="form-group">
+              <label>Nome da Promoção:</label>
+              <input type="text" id="promoName" placeholder="Ex: 🏷️ Promoção Fim de Semana" required>
+            </div>
+            <div class="form-group">
+              <label>Porcentagem de Desconto (%):</label>
+              <input type="number" id="promoDiscount" value="20" min="5" max="50" required>
+            </div>
+            <div class="form-group">
+              <label>Dias de Validade:</label>
+              <select id="promoDays">
+                <option value="Sexta a Domingo">🎉 Fim de Semana (Sexta a Domingo)</option>
+                <option value="Segunda a Quinta">💼 Dias Úteis (Segunda a Quinta)</option>
+                <option value="Todos os Dias">🌟 Todos os Dias (Semana Toda)</option>
+              </select>
+            </div>
+            <button type="submit" class="btn-success full-width">
+              <i class="fa-solid fa-map-location-dot"></i> Criar Zona Promocional no Mapa
+            </button>
+          </form>
+          <div class="active-promo-list" id="activePromoList">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL CADASTRO DE NOVO MOTORISTA / MOTO -->
+  <div class="modal-overlay hidden" id="modalRegisterDriver">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-id-card"></i> Cadastrar Novo Motorista ou Moto</h3>
+        <button class="btn-close" onclick="document.getElementById('modalRegisterDriver').classList.add('hidden')">&times;</button>
+      </div>
+      <form id="formRegisterDriver" class="modal-form">
+        <div class="form-group">
+          <label>Nome Completo:</label>
+          <input type="text" id="regDriverName" placeholder="Ex: João da Silva" required>
+        </div>
+        <div class="form-group">
+          <label>Telefone / WhatsApp:</label>
+          <input type="text" id="regDriverPhone" placeholder="(11) 99999-9999" required>
+        </div>
+        <div class="form-group">
+          <label>Tipo de Veículo:</label>
+          <select id="regDriverType" required>
+            <option value="uberx">🚗 Carro Econômico (UberX)</option>
+            <option value="comfort">🚘 Carro Comfort (Espaçoso)</option>
+            <option value="moto">🏍️ Moto Passageiro</option>
+            <option value="delivery">📦 Moto / Bike Entrega Flash</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Modelo do Veículo:</label>
+          <input type="text" id="regDriverModel" placeholder="Ex: Honda CG 160 Fan / Toyota Yaris" required>
+        </div>
+        <div class="form-group">
+          <label>Cor do Veículo:</label>
+          <input type="text" id="regDriverColor" placeholder="Ex: Vermelho, Preto, Prata, Branco" required>
+        </div>
+        <div class="form-group">
+          <label>Placa do Veículo:</label>
+          <input type="text" id="regDriverPlate" placeholder="Ex: ABC-1D23" required>
+        </div>
+        <button type="submit" class="btn-success full-width">
+          <i class="fa-solid fa-check"></i> Cadastrar e Enviar para Aprovação
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL CADASTRO DE NOVO PASSAGEIRO -->
+  <div class="modal-overlay hidden" id="modalRegisterPassenger">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-user-plus"></i> Cadastrar Novo Passageiro</h3>
+        <button class="btn-close" onclick="document.getElementById('modalRegisterPassenger').classList.add('hidden')">&times;</button>
+      </div>
+      <form id="formRegisterPassenger" class="modal-form">
+        <div class="form-group">
+          <label>Nome do Passageiro:</label>
+          <input type="text" id="regPassengerName" placeholder="Ex: Maria Santos" required>
+        </div>
+        <div class="form-group">
+          <label>Telefone:</label>
+          <input type="text" id="regPassengerPhone" placeholder="(11) 98888-7777" required>
+        </div>
+        <div class="form-group">
+          <label>Forma de Pagamento Preferida:</label>
+          <select id="regPassengerPay">
+            <option value="pix">⚡ PIX</option>
+            <option value="credit_card">💳 Cartão de Crédito</option>
+            <option value="cash">💵 Dinheiro</option>
+          </select>
+        </div>
+        <button type="submit" class="btn-primary full-width">
+          <i class="fa-solid fa-user-check"></i> Criar Perfil de Passageiro
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- JS External Libraries & Application Scripts -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="app.js"></script>
+
+</body>
+</html>
