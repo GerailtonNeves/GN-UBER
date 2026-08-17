@@ -750,38 +750,54 @@ function initEventHandlers() {
     const colorVal = document.getElementById('regDriverColor').value.trim();
     const plateVal = document.getElementById('regDriverPlate').value.trim();
 
-    const payload = {
+    const newDriverObj = {
+      id: `drv-${Date.now()}`,
       name: nameVal || 'Motorista Cadastrado',
       phone: phoneVal || '(11) 99999-9999',
-      vehicleType: typeVal || 'uberx',
-      vehicleModel: modelVal || 'Veículo',
-      vehicleColor: colorVal || 'Preto',
-      vehiclePlate: plateVal || 'ABC-1234'
+      rating: 5.0,
+      status: 'offline',
+      verified: false,
+      vehicle: {
+        model: modelVal || 'Veículo Cadastrado',
+        color: colorVal || 'Preto',
+        plate: plateVal || 'ABC-1234',
+        type: typeVal || 'uberx'
+      },
+      location: { lat: -23.561684, lng: -46.655981, heading: 0 },
+      totalEarnings: 0,
+      completedRides: 0
     };
 
     try {
       const res = await fetch(`${BACKEND_URL}/api/drivers/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          name: newDriverObj.name,
+          phone: newDriverObj.phone,
+          vehicleType: newDriverObj.vehicle.type,
+          vehicleModel: newDriverObj.vehicle.model,
+          vehicleColor: newDriverObj.vehicle.color,
+          vehiclePlate: newDriverObj.vehicle.plate
+        })
       });
 
-      const newDriver = await res.json();
-      document.getElementById('modalRegisterDriver').classList.add('hidden');
-      document.getElementById('formRegisterDriver').reset();
-
-      const driverName = newDriver?.name || nameVal;
-      const vehicleModel = newDriver?.vehicle?.model || modelVal;
-      
-      showToast(`🎉 Motorista "${driverName}" (${vehicleModel}) cadastrado com sucesso! Acesse o Painel Admin para APROVAR.`, 'success');
-      await loadAdminDrivers();
+      if (res.ok) {
+        const saved = await res.json();
+        if (saved && saved.id) newDriverObj.id = saved.id;
+      }
     } catch (err) {
-      console.log('Aviso ao registrar motorista remoto, registrando localmente:', err);
-      document.getElementById('modalRegisterDriver').classList.add('hidden');
-      document.getElementById('formRegisterDriver').reset();
-      showToast(`🎉 Motorista "${nameVal}" (${modelVal}) cadastrado! Acesse o Painel Admin para APROVAR.`, 'success');
-      loadAdminDrivers();
+      console.log('Gravado localmente:', err);
     }
+
+    if (!state.localDrivers) state.localDrivers = [];
+    state.localDrivers.push(newDriverObj);
+
+    document.getElementById('modalRegisterDriver').classList.add('hidden');
+    document.getElementById('formRegisterDriver').reset();
+
+    showToast(`🎉 Motorista "${newDriverObj.name}" (${newDriverObj.vehicle.model}) cadastrado com sucesso! Acesse o Painel Admin para APROVAR.`, 'success');
+    await loadAdminDrivers();
   });
 
   // Handler de Mapear Zona Promocional / Desconto (Admin)
@@ -1086,8 +1102,25 @@ window.toggleVerifyDriver = async function(driverId, verified) {
 
 async function loadAdminDrivers() {
   try {
-    const res = await fetch(`${BACKEND_URL}/api/drivers`);
-    const drivers = await res.json();
+    let drivers = [];
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/drivers`);
+      drivers = await res.json();
+    } catch (e) {
+      console.log('Backend offline, exibindo frota local');
+    }
+
+    if (!Array.isArray(drivers)) drivers = [];
+
+    // Mesclar motoristas locais (garante exibição instantânea sem depender de reload de rede)
+    if (state.localDrivers && state.localDrivers.length > 0) {
+      state.localDrivers.forEach(ld => {
+        if (!drivers.find(d => d.id === ld.id)) {
+          drivers.push(ld);
+        }
+      });
+    }
+
     const tbody = document.getElementById('adminDriversTable');
     const selectActive = document.getElementById('selectActiveDriver');
 
@@ -1095,16 +1128,20 @@ async function loadAdminDrivers() {
     if (selectActive) selectActive.innerHTML = '';
 
     drivers.forEach(d => {
+      const isMoto = d.vehicle?.type === 'moto' || d.vehicle?.type === 'delivery';
+      const vehicleModel = d.vehicle?.model || 'Veículo';
+      const vehicleColor = d.vehicle?.color || 'Preto';
+      const vehiclePlate = d.vehicle?.plate || 'PLACA-00';
+
       if (tbody) {
-        const isMoto = d.vehicle?.type === 'moto' || d.vehicle?.type === 'delivery';
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td><strong>${d.name}</strong><br><small style="color: var(--text-muted);">${d.phone}</small></td>
+          <td><strong>${d.name}</strong><br><small style="color: var(--text-muted);">${d.phone || '(11) 99999-9999'}</small></td>
           <td>
-            <strong>${isMoto ? '🏍️' : '🚗'} ${d.vehicle?.model || 'Veículo'} (${d.vehicle?.color || 'Preto'})</strong><br>
-            <span class="plate-badge-official">${d.vehicle?.plate || 'PLACA'}</span>
+            <strong>${isMoto ? '🏍️ Moto' : '🚗 Carro'} • ${vehicleModel} (${vehicleColor})</strong><br>
+            <span class="plate-badge-official">${vehiclePlate}</span>
           </td>
-          <td><span class="badge" style="color: ${d.status === 'online' ? '#10b981' : '#94a3b8'}; font-weight: 700;">${d.status.toUpperCase()}</span></td>
+          <td><span class="badge" style="color: ${d.status === 'online' ? '#10b981' : '#94a3b8'}; font-weight: 700;">${(d.status || 'OFFLINE').toUpperCase()}</span></td>
           <td><span style="color: ${d.verified ? '#10b981' : '#f59e0b'}; font-weight: 700;">${d.verified ? '✅ CNH Aprovada' : '⏳ CNH Pendente'}</span></td>
           <td>
             <button class="${d.verified ? 'btn-secondary' : 'btn-success'}" style="padding: 6px 12px; font-size: 0.75rem; font-weight: 700; border-radius: 6px; cursor: pointer;" onclick="window.toggleVerifyDriver('${d.id}', ${!d.verified})">
@@ -1118,15 +1155,16 @@ async function loadAdminDrivers() {
       if (selectActive) {
         const opt = document.createElement('option');
         opt.value = d.id;
-        opt.innerText = `${d.vehicle?.type === 'moto' ? '🏍️' : '🚗'} ${d.name} (${d.vehicle?.model}) ${d.verified ? '✅ Aprovado' : '⏳ Pendente'}`;
+        opt.innerText = `${isMoto ? '🏍️' : '🚗'} ${d.name} (${vehicleModel}) ${d.verified ? '✅ Aprovado' : '⏳ Pendente'}`;
         if (d.id === state.currentDriverId) opt.selected = true;
         selectActive.appendChild(opt);
       }
     });
 
-    document.getElementById('adminTotalDrivers').innerText = drivers.length;
+    const countElem = document.getElementById('adminTotalDrivers');
+    if (countElem) countElem.innerText = drivers.length;
   } catch (err) {
-    console.log('Erro ao carregar motoristas');
+    console.log('Erro ao carregar motoristas no Admin:', err);
   }
 }
 
