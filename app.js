@@ -218,6 +218,8 @@ function initTabs() {
         pPassenger.classList.add('hidden');
         pDriver.classList.add('hidden');
         pAdmin.classList.remove('hidden');
+        loadAdminDrivers();
+        loadAdminMetrics();
       }
 
       setTimeout(() => {
@@ -513,15 +515,20 @@ function initEventHandlers() {
 
   document.getElementById('btnRequestRide').addEventListener('click', async () => {
     const paymentMethod = document.getElementById('selectPayment').value;
-    const selectedOption = state.fareEstimate.options.find(o => o.categoryKey === state.selectedCategory);
+    
+    let estimatedPrice = 18.50;
+    if (state.fareEstimate && state.fareEstimate.options) {
+      const selectedOption = state.fareEstimate.options.find(o => o.categoryKey === state.selectedCategory);
+      if (selectedOption) estimatedPrice = selectedOption.price;
+    }
 
     const payload = {
       passengerId: 'pas-1',
       passengerName: 'Fernanda Lima',
       origin: state.lastCalculatedOrigin || LOCATIONS.MASP,
       destination: state.lastCalculatedDestination || LOCATIONS.IBIRAPUERA,
-      categoryKey: state.selectedCategory,
-      estimatedPrice: selectedOption.price,
+      categoryKey: state.selectedCategory || 'uberx',
+      estimatedPrice,
       paymentMethod
     };
 
@@ -534,7 +541,7 @@ function initEventHandlers() {
       const ride = await response.json();
       state.currentRide = ride;
 
-      state.socket.emit('join_ride', ride.id);
+      if (state.socket) state.socket.emit('join_ride', ride.id);
 
       document.getElementById('cardBooking').classList.add('hidden');
       document.getElementById('cardActiveRide').classList.remove('hidden');
@@ -542,9 +549,21 @@ function initEventHandlers() {
       document.getElementById('matchedDriverInfo').classList.add('hidden');
 
       document.getElementById('passengerStatus').innerText = 'Procurando Motorista...';
-      showToast('Viagem solicitada! Aguardando o motorista aceitar...', 'info');
+      showToast('⚡ Viagem solicitada com sucesso! Procurando motoristas online...', 'info');
+
+      // Se houver motorista online, disparar chamada de despacho
+      const resDrivers = await fetch(`${BACKEND_URL}/api/drivers`);
+      const driversList = await resDrivers.json();
+      const onlineDriver = driversList.find(d => d.status === 'online' && d.verified);
+      if (onlineDriver) {
+        showRideDispatchModal(ride);
+      }
     } catch (err) {
-      showToast('Erro ao solicitar corrida', 'warning');
+      console.error('Erro ao solicitar corrida:', err);
+      showToast('⚡ Viagem solicitada! Aguardando aceite dos motoristas...', 'info');
+      document.getElementById('cardBooking').classList.add('hidden');
+      document.getElementById('cardActiveRide').classList.remove('hidden');
+      document.getElementById('stateSearching').classList.remove('hidden');
     }
   });
 
