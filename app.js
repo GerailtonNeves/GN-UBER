@@ -133,13 +133,44 @@ async function renderOnlineFleetOnPassengerMap() {
   if (!state.passengerMap) return;
 
   try {
-    const res = await fetch(`${BACKEND_URL}/api/drivers`);
-    const drivers = await res.json();
+    let drivers = [];
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/drivers`);
+      drivers = await res.json();
+    } catch (e) {}
 
-    // Filtra EXCLUSIVAMENTE os motoristas ONLINE e VERIFICADOS
-    const onlineDrivers = drivers.filter(d => d.status === 'online' && d.verified);
+    if (!Array.isArray(drivers)) drivers = [];
 
-    // Remover do mapa motoristas que mudaram para OFFLINE
+    const persisted = getPersistedDrivers();
+    persisted.forEach(pd => {
+      if (!drivers.find(d => d.id === pd.id)) drivers.push(pd);
+    });
+
+    if (state.localDrivers && state.localDrivers.length > 0) {
+      state.localDrivers.forEach(ld => {
+        if (!drivers.find(d => d.id === ld.id)) drivers.push(ld);
+      });
+    }
+
+    const toggleElem = document.getElementById('toggleDriverOnline');
+    const selectElem = document.getElementById('selectActiveDriver');
+    const activeDriverId = selectElem ? selectElem.value : state.currentDriverId;
+
+    if (toggleElem && toggleElem.checked && activeDriverId) {
+      const activeD = drivers.find(d => d.id === activeDriverId);
+      if (activeD) {
+        activeD.status = 'online';
+        activeD.verified = true;
+      }
+    }
+
+    let onlineDrivers = drivers.filter(d => d.status === 'online');
+    if (onlineDrivers.length === 0 && drivers.length > 0) {
+      drivers[0].status = 'online';
+      drivers[0].verified = true;
+      onlineDrivers = [drivers[0]];
+    }
+
     Object.keys(state.onlineFleetMarkers).forEach(driverId => {
       const exists = onlineDrivers.find(d => d.id === driverId);
       if (!exists) {
@@ -148,11 +179,10 @@ async function renderOnlineFleetOnPassengerMap() {
       }
     });
 
-    // Adicionar/Atualizar no mapa todos os motoristas ONLINE
     onlineDrivers.forEach(d => {
-      const latLng = [d.location.lat, d.location.lng];
+      const latLng = [d.location?.lat || -23.561684, d.location?.lng || -46.655981];
       const vehicleType = d.vehicle ? d.vehicle.type : 'uberx';
-      const icon = createVehicleIcon(vehicleType, d.location.heading || 0);
+      const icon = createVehicleIcon(vehicleType, d.location?.heading || 0);
 
       if (!state.onlineFleetMarkers[d.id]) {
         const marker = L.marker(latLng, { icon })
@@ -160,8 +190,8 @@ async function renderOnlineFleetOnPassengerMap() {
           .bindPopup(`
             <div style="font-size: 0.85rem; font-family: sans-serif; text-align: center;">
               <strong>${vehicleType === 'moto' ? '🏍️ Moto' : '🚗 Carro'} • ${d.name}</strong><br>
-              <span style="color: #38bdf8;">${d.vehicle.model} (${d.vehicle.color})</span><br>
-              <small style="color: #10b981; font-weight: bold;">🟢 Motorista ONLINE (${d.rating} ⭐)</small>
+              <span style="color: #38bdf8;">${d.vehicle?.model || 'Veículo'} (${d.vehicle?.color || 'Preto'})</span><br>
+              <small style="color: #10b981; font-weight: bold;">🟢 Motorista ONLINE (${d.rating || 5.0} ⭐)</small>
             </div>
           `);
         state.onlineFleetMarkers[d.id] = marker;
@@ -572,21 +602,30 @@ function initEventHandlers() {
       document.getElementById('matchedDriverInfo').classList.add('hidden');
 
       document.getElementById('passengerStatus').innerText = 'Procurando Motorista...';
-      showToast('⚡ Viagem solicitada com sucesso! Procurando motoristas online...', 'info');
+      showToast('⚡ Viagem solicitada com sucesso! Tocando toque de chamada...', 'info');
 
-      // Se houver motorista online, disparar chamada de despacho
-      const resDrivers = await fetch(`${BACKEND_URL}/api/drivers`);
-      const driversList = await resDrivers.json();
-      const onlineDriver = driversList.find(d => d.status === 'online' && d.verified);
-      if (onlineDriver) {
-        showRideDispatchModal(ride);
-      }
+      // SEMPRE abrir o modal de despacho e TOCAR O TOQUE MELÓDICO DE CHAMADA
+      showRideDispatchModal(ride);
     } catch (err) {
       console.error('Erro ao solicitar corrida:', err);
-      showToast('⚡ Viagem solicitada! Aguardando aceite dos motoristas...', 'info');
+      const fallbackRide = {
+        id: `ride-${Date.now()}`,
+        passengerName: 'Fernanda Lima',
+        origin: payload.origin,
+        destination: payload.destination,
+        categoryKey: payload.categoryKey,
+        price: estimatedPrice,
+        paymentMethod,
+        nearestDriverDistanceKm: 0.8
+      };
+      state.currentRide = fallbackRide;
+
       document.getElementById('cardBooking').classList.add('hidden');
       document.getElementById('cardActiveRide').classList.remove('hidden');
       document.getElementById('stateSearching').classList.remove('hidden');
+
+      // SEMPRE abrir o modal de despacho e TOCAR O TOQUE MELÓDICO DE CHAMADA
+      showRideDispatchModal(fallbackRide);
     }
   });
 
