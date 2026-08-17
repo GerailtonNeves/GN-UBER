@@ -543,14 +543,19 @@ function initEventHandlers() {
         throw new Error('Fallback local');
       }
     } catch (err) {
-      // Cálculo Inteligente Local Fallback (Elimina 100% qualquer mensagem de erro)
-      const distKm = 4.2;
-      const durationMin = 12;
-      const baseFare = 5.00 + (distKm * 2.20) + (durationMin * 0.40);
+      const radLat1 = (origin.lat || -23.561684) * (Math.PI / 180);
+      const radLat2 = (dest.lat || -23.587416) * (Math.PI / 180);
+      const dLat = ((dest.lat || -23.587416) - (origin.lat || -23.561684)) * (Math.PI / 180);
+      const dLon = ((dest.lng || -46.657634) - (origin.lng || -46.655981)) * (Math.PI / 180);
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(radLat1) * Math.cos(radLat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const straightDist = 6371 * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+      const distKm = Math.max(1.0, parseFloat((straightDist * 1.30).toFixed(2)));
+      const durationMin = Math.max(4, Math.round((distKm / 30) * 60));
+      const baseFare = Math.max(10.00, 6.00 + (distKm * 2.50) + (durationMin * 0.50));
       const options = [
         { categoryKey: 'uberx', name: 'Econômico (X)', icon: '🚗', price: parseFloat(baseFare.toFixed(2)) },
         { categoryKey: 'comfort', name: 'Comfort (Espaçoso)', icon: '🚘', price: parseFloat((baseFare * 1.25).toFixed(2)) },
-        { categoryKey: 'moto', name: 'Moto Rápidas', icon: '🏍️', price: parseFloat((baseFare * 0.7).toFixed(2)) },
+        { categoryKey: 'moto', name: 'Moto Rápidas', icon: '🏍️', price: parseFloat((baseFare * 0.75).toFixed(2)) },
         { categoryKey: 'delivery', name: 'Entregas Flash', icon: '📦', price: parseFloat((baseFare * 0.85).toFixed(2)) }
       ];
       state.fareEstimate = { distanceKm: distKm, durationMinutes: durationMin, options };
