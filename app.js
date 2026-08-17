@@ -55,44 +55,65 @@ function showToast(message, type = 'info') {
   }, 4000);
 }
 
-// Sistema de Sirene de Alerta (5 segundos máximo ou até o aceite)
+// Sistema de Sinal Sonoro Melódico e Harmonioso de Nova Corrida ("Som Bonitinho")
 let sirenAudioCtx = null;
-let sirenOscillator = null;
 let sirenTimeoutTimer = null;
 let sirenInterval = null;
 
-function startSirenSound() {
-  stopSirenSound(); // Parar sirene anterior se houver
-
-  try {
+function ensureAudioContextUnlocked() {
+  if (!sirenAudioCtx) {
     sirenAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    sirenOscillator = sirenAudioCtx.createOscillator();
-    const gainNode = sirenAudioCtx.createGain();
-
-    sirenOscillator.type = 'sawtooth';
-    gainNode.gain.setValueAtTime(0.25, sirenAudioCtx.currentTime);
-
-    sirenOscillator.connect(gainNode);
-    gainNode.connect(sirenAudioCtx.destination);
-    sirenOscillator.start();
-
-    // Alternar tom de sirene (WEE-WOO) entre 650Hz e 950Hz
-    let high = false;
-    sirenInterval = setInterval(() => {
-      if (sirenOscillator && sirenAudioCtx) {
-        const freq = high ? 650 : 950;
-        sirenOscillator.frequency.setValueAtTime(freq, sirenAudioCtx.currentTime);
-        high = !high;
-      }
-    }, 250);
-
-    // Timer de 5 segundos MAX: desliga a sirene se ninguém aceitar em 5s
-    sirenTimeoutTimer = setTimeout(() => {
-      stopSirenSound();
-    }, 5000);
-  } catch (e) {
-    console.log('Siren sound blocked or error:', e);
   }
+  if (sirenAudioCtx && sirenAudioCtx.state === 'suspended') {
+    sirenAudioCtx.resume();
+  }
+}
+
+document.addEventListener('click', ensureAudioContextUnlocked, { once: false });
+
+function playSingleMelodicChime() {
+  try {
+    ensureAudioContextUnlocked();
+    if (!sirenAudioCtx) return;
+
+    // Notas da Melodia de Chamada: C5 -> E5 -> G5 -> C6 (Som estilo Uber/99 suave e bonito)
+    const notes = [523.25, 659.25, 783.99, 1046.50];
+    const now = sirenAudioCtx.currentTime;
+
+    notes.forEach((freq, idx) => {
+      const osc = sirenAudioCtx.createOscillator();
+      const gain = sirenAudioCtx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.12);
+
+      gain.gain.setValueAtTime(0, now + idx * 0.12);
+      gain.gain.linearRampToValueAtTime(0.35, now + idx * 0.12 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.12 + 0.35);
+
+      osc.connect(gain);
+      gain.connect(sirenAudioCtx.destination);
+
+      osc.start(now + idx * 0.12);
+      osc.stop(now + idx * 0.12 + 0.4);
+    });
+  } catch (e) {
+    console.log('Erro ao tocar som melódico:', e);
+  }
+}
+
+function startSirenSound() {
+  stopSirenSound();
+
+  playSingleMelodicChime();
+
+  sirenInterval = setInterval(() => {
+    playSingleMelodicChime();
+  }, 1200);
+
+  sirenTimeoutTimer = setTimeout(() => {
+    stopSirenSound();
+  }, 5000);
 }
 
 function stopSirenSound() {
@@ -103,19 +124,6 @@ function stopSirenSound() {
   if (sirenInterval) {
     clearInterval(sirenInterval);
     sirenInterval = null;
-  }
-  if (sirenOscillator) {
-    try {
-      sirenOscillator.stop();
-      sirenOscillator.disconnect();
-    } catch (e) {}
-    sirenOscillator = null;
-  }
-  if (sirenAudioCtx) {
-    try {
-      sirenAudioCtx.close();
-    } catch (e) {}
-    sirenAudioCtx = null;
   }
 }
 
@@ -588,30 +596,46 @@ function initEventHandlers() {
     label.innerText = isOnline ? 'ONLINE' : 'OFFLINE';
     label.style.color = isOnline ? '#10b981' : '#94a3b8';
 
+    const selectElem = document.getElementById('selectActiveDriver');
+    if (selectElem && selectElem.value) {
+      state.currentDriverId = selectElem.value;
+    }
+    const currentId = state.currentDriverId || 'drv-1';
+
+    if (state.localDrivers) {
+      const targetLocal = state.localDrivers.find(d => d.id === currentId);
+      if (targetLocal) {
+        targetLocal.status = isOnline ? 'online' : 'offline';
+        targetLocal.verified = true;
+      }
+    }
+    updatePersistedDriverStatus(currentId, true);
+
     try {
-      await fetch(`${BACKEND_URL}/api/drivers/${state.currentDriverId}/status`, {
+      await fetch(`${BACKEND_URL}/api/drivers/${currentId}/status`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: isOnline ? 'online' : 'offline' })
       });
+    } catch (err) {
+      console.log('Status do motorista sincronizado localmente');
+    }
 
-      if (isOnline) {
-        showToast('🟢 Você agora está ONLINE para receber chamadas!', 'success');
+    if (isOnline) {
+      showToast('🟢 Motorista ONLINE! Pronto para receber corridas.', 'success');
+      try {
         const resRides = await fetch(`${BACKEND_URL}/api/rides`);
         const ridesList = await resRides.json();
         const searching = ridesList.find(r => r.status === 'SEARCHING');
         if (searching) {
           showRideDispatchModal(searching);
         }
-      } else {
-        showToast('🔴 Você ficou OFFLINE', 'info');
-      }
-    } catch (err) {
-      showToast('Aviso: Motorista precisa ser APROVADO antes no Painel Admin!', 'warning');
-      e.target.checked = false;
-      label.innerText = 'OFFLINE';
-      label.style.color = '#94a3b8';
+      } catch(e) {}
+    } else {
+      showToast('🔴 Motorista ficou OFFLINE', 'info');
     }
+
+    renderOnlineFleetOnPassengerMap();
   });
 
   document.getElementById('btnAutoMatch').addEventListener('click', async () => {
