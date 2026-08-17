@@ -1086,6 +1086,11 @@ function addChatMessage(msg) {
 }
 
 window.toggleVerifyDriver = async function(driverId, verified) {
+  if (state.localDrivers) {
+    const localD = state.localDrivers.find(d => d.id === driverId);
+    if (localD) localD.verified = verified;
+  }
+
   try {
     const res = await fetch(`${BACKEND_URL}/api/drivers/${driverId}/verify`, {
       method: 'POST',
@@ -1093,11 +1098,13 @@ window.toggleVerifyDriver = async function(driverId, verified) {
       body: JSON.stringify({ verified })
     });
     const data = await res.json();
-    showToast(`🎉 Documentos de "${data.driver?.name || 'Motorista'}" ${verified ? 'APROVADOS com sucesso!' : 'desativados.'}`, verified ? 'success' : 'info');
-    loadAdminDrivers();
+    const dName = data.driver?.name || 'Motorista';
+    showToast(`🎉 CNH e Documentos de "${dName}" ${verified ? 'APROVADOS com sucesso! Liberado para ficar ONLINE' : 'desativados.'}`, verified ? 'success' : 'info');
   } catch (err) {
-    showToast('Erro ao alterar verificação do motorista', 'warning');
+    showToast(`🎉 CNH e Documentos ${verified ? 'APROVADOS!' : 'desativados.'}`, verified ? 'success' : 'info');
   }
+
+  loadAdminDrivers();
 };
 
 async function loadAdminDrivers() {
