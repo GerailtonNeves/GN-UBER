@@ -726,23 +726,34 @@ function initEventHandlers() {
 
     if (state.socket) state.socket.emit('join_ride', state.currentRide.id);
 
-    // Alternar automaticamente para a visualização/mapa do motorista
-    if (state.activeMode === 'passenger') {
-      const tabDriver = document.querySelector('.tab-btn[data-mode="driver"]');
-      if (tabDriver) tabDriver.click();
+    // FORÇAR ABERTURA AUTOMÁTICA DA TELA E MAPA DO MOTORISTA
+    const tabDriver = document.querySelector('.tab-btn[data-mode="driver"]');
+    if (tabDriver) tabDriver.click();
+
+    const panelDriverElem = document.getElementById('panelDriver');
+    if (panelDriverElem) {
+      panelDriverElem.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+
+    const safeOrigin = (state.currentRide && state.currentRide.origin && state.currentRide.origin.lat) ? state.currentRide.origin : LOCATIONS.MASP;
+    const safeDest = (state.currentRide && state.currentRide.destination && state.currentRide.destination.lat) ? state.currentRide.destination : LOCATIONS.IBIRAPUERA;
 
     setTimeout(() => {
       if (state.driverMap) {
         state.driverMap.invalidateSize();
-        state.driverMap.flyTo([state.currentRide.origin.lat, state.currentRide.origin.lng], 15, { animate: true });
-      }
-    }, 200);
+        state.driverMap.flyTo([safeOrigin.lat, safeOrigin.lng], 16, { animate: true, duration: 1.2 });
 
-    renderRouteOnMap(state.driverMap, state.currentRide.origin, state.currentRide.destination, 'driver');
+        L.marker([safeOrigin.lat, safeOrigin.lng], { icon: createPinIcon('origin') })
+          .addTo(state.driverMap)
+          .bindPopup(`<b>🟢 Embarque do Cliente (${state.currentRide.passengerName || 'Passageiro'})</b><br>${safeOrigin.name || 'Local de Partida'}`)
+          .openPopup();
+      }
+    }, 150);
+
+    renderRouteOnMap(state.driverMap, safeOrigin, safeDest, 'driver');
     updateDriverUI(state.currentRide);
     startDriverMovementSimulation(state.currentRide);
-    showToast('🎉 Corrida aceita! Mapa aberto para navegar até o cliente...', 'success');
+    showToast('🗺️ Mapa do motorista aberto automaticamente! Navegando até o cliente...', 'success');
   });
 
   document.getElementById('btnRejectRide').addEventListener('click', () => {
@@ -953,22 +964,72 @@ function renderCategoriesGrid(options) {
 }
 
 function renderRouteOnMap(map, origin, destination, role) {
-  if (role === 'passenger' && state.routePolylinePassenger) map.removeLayer(state.routePolylinePassenger);
-  if (role === 'driver' && state.routePolylineDriver) map.removeLayer(state.routePolylineDriver);
+  if (!map) return;
+
+  const safeOrigin = (origin && origin.lat && origin.lng) ? origin : LOCATIONS.MASP;
+  const safeDest = (destination && destination.lat && destination.lng) ? destination : LOCATIONS.IBIRAPUERA;
+
+  if (role === 'passenger' && state.routePolylinePassenger) {
+    try { map.removeLayer(state.routePolylinePassenger); } catch(e) {}
+  }
+  if (role === 'driver' && state.routePolylineDriver) {
+    try { map.removeLayer(state.routePolylineDriver); } catch(e) {}
+  }
 
   const points = [
-    [origin.lat, origin.lng],
-    [destination.lat, destination.lng]
+    [safeOrigin.lat, safeOrigin.lng],
+    [safeDest.lat, safeDest.lng]
   ];
 
   L.marker(points[0], { icon: createPinIcon('origin') }).addTo(map);
   L.marker(points[1], { icon: createPinIcon('dest') }).addTo(map);
 
   const polyline = L.polyline(points, { color: '#3b82f6', weight: 5, opacity: 0.8, dashArray: '8, 8' }).addTo(map);
-  map.fitBounds(polyline.getBounds(), { padding: [40, 40] });
+  try {
+    map.fitBounds(polyline.getBounds(), { padding: [40, 40] });
+  } catch(e) {}
 
   if (role === 'passenger') state.routePolylinePassenger = polyline;
   if (role === 'driver') state.routePolylineDriver = polyline;
+}
+
+function startDriverMovementSimulation(ride) {
+  if (!ride) return;
+  let steps = 0;
+  const maxSteps = 25;
+
+  const originObj = (ride.origin && ride.origin.lat) ? ride.origin : LOCATIONS.MASP;
+  const destObj = (ride.destination && ride.destination.lat) ? ride.destination : LOCATIONS.IBIRAPUERA;
+
+  const startLat = originObj.lat;
+  const startLng = originObj.lng;
+  const endLat = destObj.lat;
+  const endLng = destObj.lng;
+
+  if (state.simulationInterval) clearInterval(state.simulationInterval);
+
+  state.simulationInterval = setInterval(() => {
+    steps++;
+    const progress = steps / maxSteps;
+
+    const currentLat = startLat + (endLat - startLat) * progress;
+    const currentLng = startLng + (endLng - startLng) * progress;
+
+    if (state.socket) {
+      state.socket.emit('update_driver_location', {
+        driverId: state.currentDriverId || 'drv-1',
+        lat: currentLat,
+        lng: currentLng,
+        heading: 45
+      });
+    }
+
+    updateDriverMarkerOnMap({ lat: currentLat, lng: currentLng, heading: 45 });
+
+    if (steps >= maxSteps) {
+      clearInterval(state.simulationInterval);
+    }
+  }, 1500);
 }
 
 function showRideDispatchModal(ride) {
