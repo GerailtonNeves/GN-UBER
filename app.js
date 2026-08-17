@@ -1239,6 +1239,26 @@ async function loadAdminDrivers() {
     if (tbody) tbody.innerHTML = '';
     if (selectActive) selectActive.innerHTML = '';
 
+    if (drivers.length === 0) {
+      if (tbody) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5" style="text-align: center; padding: 30px; color: #94a3b8;">
+              <i class="fa-solid fa-user-gear" style="font-size: 2rem; margin-bottom: 10px; display: block; color: var(--accent-cyan);"></i>
+              <strong>Nenhum motorista cadastrado no sistema ainda.</strong><br>
+              <small style="color: var(--text-muted);">Clique no botão <strong>"+ Nova Moto/Carro"</strong> para cadastrar seu primeiro motorista real!</small>
+            </td>
+          </tr>
+        `;
+      }
+      if (selectActive) {
+        selectActive.innerHTML = `<option value="">Nenhum motorista cadastrado ainda (Clique em + Nova Moto/Carro)</option>`;
+      }
+      const countElem = document.getElementById('adminTotalDrivers');
+      if (countElem) countElem.innerText = '0';
+      return;
+    }
+
     drivers.forEach(d => {
       const isMoto = d.vehicle?.type === 'moto' || d.vehicle?.type === 'delivery';
       const vehicleModel = d.vehicle?.model || 'Veículo';

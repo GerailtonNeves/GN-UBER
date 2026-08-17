@@ -69,14 +69,14 @@
         <div class="map-controls-floating">
           <div class="input-group input-group-relative">
             <i class="fa-solid fa-circle-dot origin-icon"></i>
-            <input type="text" id="inputOrigin" class="address-input" placeholder="Comece a digitar a rua de origem..." value="MASP - Av. Paulista, 1578" autocomplete="off" />
+            <input type="text" id="inputOrigin" class="address-input" placeholder="Digite o nome da rua e cidade de origem..." value="" autocomplete="off" />
             <button type="button" class="btn-icon" id="btnSearchOrigin" title="Buscar Origem"><i class="fa-solid fa-magnifying-glass"></i></button>
             <div id="suggestionsOrigin" class="autocomplete-dropdown hidden"></div>
           </div>
           
           <div class="input-group input-group-relative">
             <i class="fa-solid fa-location-pin dest-icon"></i>
-            <input type="text" id="inputDestination" class="address-input" placeholder="Comece a digitar a rua de destino..." value="Parque Ibirapuera - Portão 3" autocomplete="off" />
+            <input type="text" id="inputDestination" class="address-input" placeholder="Digite o nome da rua e cidade de destino..." value="" autocomplete="off" />
             <button type="button" class="btn-icon" id="btnSearchDest" title="Buscar Destino"><i class="fa-solid fa-magnifying-glass"></i></button>
             <div id="suggestionsDest" class="autocomplete-dropdown hidden"></div>
           </div>
@@ -183,9 +183,7 @@
         <h2><i class="fa-solid fa-car"></i> Painel do Motorista / Moto</h2>
         <div class="header-actions">
           <select id="selectActiveDriver" class="driver-select">
-            <option value="drv-1">Carlos (Carro Corolla)</option>
-            <option value="drv-2">Ana (Carro Civic)</option>
-            <option value="drv-3">Marcos (Moto CB 300)</option>
+            <option value="">Aguardando cadastro de motorista...</option>
           </select>
           <button id="btnTestSound" class="btn-secondary btn-sm" onclick="playSingleMelodicChime(); showToast('🔔 Toque de chamada reproduzido com sucesso!', 'info');" title="Testar Som da Chamada"><i class="fa-solid fa-bell"></i> Testar Som</button>
           <button id="btnOpenModalDriver" class="btn-secondary btn-sm"><i class="fa-solid fa-plus"></i> Nova Moto/Carro</button>
