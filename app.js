@@ -792,6 +792,7 @@ function initEventHandlers() {
 
     if (!state.localDrivers) state.localDrivers = [];
     state.localDrivers.push(newDriverObj);
+    savePersistedDriver(newDriverObj);
 
     document.getElementById('modalRegisterDriver').classList.add('hidden');
     document.getElementById('formRegisterDriver').reset();
@@ -1085,11 +1086,42 @@ function addChatMessage(msg) {
   box.scrollTop = box.scrollHeight;
 }
 
+function getPersistedDrivers() {
+  try {
+    const raw = localStorage.getItem('uberflow_drivers');
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function savePersistedDriver(driverObj) {
+  try {
+    const current = getPersistedDrivers();
+    if (!current.find(d => d.id === driverObj.id)) {
+      current.push(driverObj);
+      localStorage.setItem('uberflow_drivers', JSON.stringify(current));
+    }
+  } catch (e) {}
+}
+
+function updatePersistedDriverStatus(driverId, verified) {
+  try {
+    const current = getPersistedDrivers();
+    const target = current.find(d => d.id === driverId);
+    if (target) {
+      target.verified = verified;
+      localStorage.setItem('uberflow_drivers', JSON.stringify(current));
+    }
+  } catch (e) {}
+}
+
 window.toggleVerifyDriver = async function(driverId, verified) {
   if (state.localDrivers) {
     const localD = state.localDrivers.find(d => d.id === driverId);
     if (localD) localD.verified = verified;
   }
+  updatePersistedDriverStatus(driverId, verified);
 
   try {
     const res = await fetch(`${BACKEND_URL}/api/drivers/${driverId}/verify`, {
@@ -1119,7 +1151,17 @@ async function loadAdminDrivers() {
 
     if (!Array.isArray(drivers)) drivers = [];
 
-    // Mesclar motoristas locais (garante exibição instantânea sem depender de reload de rede)
+    // Mesclar motoristas salvos no localStorage (GARANTE QUE NUNCA SOMEM AO APERTAR F5)
+    const persisted = getPersistedDrivers();
+    persisted.forEach(pd => {
+      const existing = drivers.find(d => d.id === pd.id);
+      if (!existing) {
+        drivers.push(pd);
+      } else if (pd.verified !== undefined) {
+        existing.verified = pd.verified;
+      }
+    });
+
     if (state.localDrivers && state.localDrivers.length > 0) {
       state.localDrivers.forEach(ld => {
         if (!drivers.find(d => d.id === ld.id)) {
