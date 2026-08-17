@@ -1111,11 +1111,61 @@ function updatePassengerUI(ride) {
   }
 }
 
+window.openDriverGPSNavigation = function() {
+  if (!state.currentRide) {
+    showToast('Nenhuma corrida ativa no momento.', 'warning');
+    return;
+  }
+
+  const ride = state.currentRide;
+  const origin = (ride.origin && ride.origin.lat) ? ride.origin : LOCATIONS.MASP;
+  const lat = origin.lat;
+  const lng = origin.lng;
+  const addressName = origin.name || 'Local de Embarque do Cliente';
+
+  // 1. Alternar para a aba do motorista e voar o mapa com zoom 17
+  const tabDriver = document.querySelector('.tab-btn[data-mode="driver"]');
+  if (tabDriver) tabDriver.click();
+
+  const panelElem = document.getElementById('panelDriver');
+  if (panelElem) panelElem.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  setTimeout(() => {
+    if (state.driverMap) {
+      state.driverMap.invalidateSize();
+      state.driverMap.flyTo([lat, lng], 17, { animate: true, duration: 1.2 });
+
+      L.marker([lat, lng], { icon: createPinIcon('origin') })
+        .addTo(state.driverMap)
+        .bindPopup(`
+          <div style="font-family: sans-serif; text-align: center; padding: 4px;">
+            <strong style="color: #10b981;">🟢 Ponto de Embarque do Cliente</strong><br>
+            <b>${ride.passengerName || 'Passageiro'}</b><br>
+            <span style="color: #38bdf8;">${addressName}</span>
+          </div>
+        `)
+        .openPopup();
+    }
+  }, 150);
+
+  // 2. Abrir o mapa de navegação GPS externo em nova aba (Google Maps Direcional)
+  const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&destination_place_id=${encodeURIComponent(addressName)}`;
+  window.open(googleMapsUrl, '_blank');
+
+  showToast(`🗺️ Navegação GPS iniciada para: ${addressName}`, 'success');
+};
+
 function updateDriverUI(ride) {
   if (!ride) return;
 
   const actionsBox = document.getElementById('driverActions');
   actionsBox.classList.remove('hidden');
+
+  const subElem = document.getElementById('driverCurrentRideSub');
+  if (subElem) {
+    const originName = ride.origin?.name || 'Local de Partida';
+    subElem.innerHTML = `<i class="fa-solid fa-user"></i> Cliente: <strong>${ride.passengerName || 'Passageiro'}</strong><br><i class="fa-solid fa-location-dot" style="color: #10b981;"></i> <span>${originName}</span>`;
+  }
 
   const btnArrived = document.getElementById('btnDriverArrived');
   const btnStart = document.getElementById('btnDriverStart');
