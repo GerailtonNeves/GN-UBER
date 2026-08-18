@@ -947,6 +947,18 @@ function renderCategoriesGrid(options) {
   const container = document.getElementById('categoriesGrid');
   container.innerHTML = '';
 
+  const distKm = state.fareEstimate ? state.fareEstimate.distanceKm : null;
+  const durationMin = state.fareEstimate ? state.fareEstimate.durationMinutes : null;
+
+  const kmBadgeElem = document.getElementById('estimateKmBadge');
+  if (kmBadgeElem && distKm) {
+    kmBadgeElem.innerHTML = `
+      <div style="background: rgba(2, 132, 199, 0.12); color: #0284c7; border: 1px solid var(--primary); padding: 8px 16px; border-radius: 12px; font-weight: 800; font-size: 0.88rem; margin-bottom: 12px; display: inline-flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-route" style="font-size: 1.1rem;"></i> Distância Total da Entrega: <strong style="font-size: 1.1rem; color: #0f172a;">${distKm.toFixed(1).replace('.', ',')} km</strong> (${durationMin} min)
+      </div>
+    `;
+  }
+
   options.forEach((opt, idx) => {
     const isSelected = opt.categoryKey === state.selectedCategory || (idx === 0 && !state.selectedCategory);
     if (isSelected) state.selectedCategory = opt.categoryKey;
@@ -963,7 +975,8 @@ function renderCategoriesGrid(options) {
       <div class="icon">${opt.icon}</div>
       <div>
         <div class="name">${opt.name}</div>
-        <div class="price">R$ ${opt.price.toFixed(2)}</div>
+        <div class="price">R$ ${opt.price.toFixed(2).replace('.', ',')}</div>
+        ${distKm ? `<small style="color: #475569; font-weight: bold; font-size: 0.75rem;">⚡ ${distKm.toFixed(1).replace('.', ',')} km</small>` : ''}
       </div>
     `;
     container.appendChild(div);
@@ -1104,7 +1117,11 @@ function updatePassengerUI(ride) {
       document.getElementById('rideDriverPlate').innerText = ride.driver.vehicle.plate;
     }
 
-    document.getElementById('rideSummaryPrice').innerText = `R$ ${ride.price.toFixed(2)}`;
+    const rideKm = ride.distanceKm ? parseFloat(ride.distanceKm) : 0.0;
+    const kmElem = document.getElementById('rideSummaryKm');
+    if (kmElem) kmElem.innerText = `${rideKm.toFixed(1).replace('.', ',')} km`;
+
+    document.getElementById('rideSummaryPrice').innerText = `R$ ${ride.price.toFixed(2).replace('.', ',')}`;
     document.getElementById('rideSummaryPay').innerText = ride.paymentMethod.toUpperCase();
 
     document.querySelectorAll('.ride-progress-bar .step').forEach(s => s.classList.remove('active'));
@@ -1216,18 +1233,15 @@ window.confirmStartDeliveryNavigation = function() {
 
   document.getElementById('btnDriverDeliver').addEventListener('click', () => {
     if (!state.currentRide) return;
-    updateRideStatus('COMPLETED');
+    const ride = state.currentRide;
+    const isCash = ride.paymentMethod === 'cash' || ride.paymentMethod === 'dinheiro';
 
-    const btnDeliver = document.getElementById('btnDriverDeliver');
-    const cardDelivery = document.getElementById('deliveryAddressCard');
-    const actionsBox = document.getElementById('driverActions');
+    if (isCash && !ride.cashCollected) {
+      showCashCollectionModal(ride);
+      return;
+    }
 
-    if (btnDeliver) btnDeliver.classList.add('hidden');
-    if (cardDelivery) cardDelivery.classList.add('hidden');
-    if (actionsBox) actionsBox.classList.add('hidden');
-
-    if (state.simulationInterval) clearInterval(state.simulationInterval);
-    showToast('🏁 Entrega realizada com sucesso no endereço do cliente! Valor creditado.', 'success');
+    finishDeliveryAction();
   });
 
   document.getElementById('btnRejectRide').addEventListener('click', () => {
@@ -1247,9 +1261,16 @@ window.confirmStartDeliveryNavigation = function() {
     showToast('🚗 Viagem iniciada! Indo ao destino...', 'success');
   });
   document.getElementById('btnDriverComplete').addEventListener('click', () => {
-    updateRideStatus('COMPLETED');
-    if (state.simulationInterval) clearInterval(state.simulationInterval);
-    showToast('🏁 Viagem concluída com sucesso! Valor creditado.', 'success');
+    if (!state.currentRide) return;
+    const ride = state.currentRide;
+    const isCash = ride.paymentMethod === 'cash' || ride.paymentMethod === 'dinheiro';
+
+    if (isCash && !ride.cashCollected) {
+      showCashCollectionModal(ride);
+      return;
+    }
+
+    finishDeliveryAction();
   });
 
   document.getElementById('btnSendChat').addEventListener('click', sendChatMessage);
@@ -1807,4 +1828,177 @@ async function loadAdminMetrics() {
   } catch (err) {
     console.log('Erro ao carregar métricas admin');
   }
+
+  loadAdminCashRecords();
 }
+
+function getCashRecords() {
+  try {
+    const raw = localStorage.getItem('uberflow_cash_records');
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveCashRecord(record) {
+  try {
+    const records = getCashRecords();
+    const existingIdx = records.findIndex(r => r.id === record.id);
+    if (existingIdx >= 0) {
+      records[existingIdx] = record;
+    } else {
+      records.unshift(record);
+    }
+    localStorage.setItem('uberflow_cash_records', JSON.stringify(records));
+  } catch (e) {}
+}
+
+function showCashCollectionModal(ride) {
+  const modalCash = document.getElementById('modalCashCollection');
+  const amountElem = document.getElementById('cashAmountToCollectText');
+  const passengerElem = document.getElementById('cashPassengerInfoText');
+
+  const priceVal = ride.price ? parseFloat(ride.price) : 25.00;
+  if (amountElem) amountElem.innerText = `R$ ${priceVal.toFixed(2).replace('.', ',')}`;
+  if (passengerElem) passengerElem.innerText = `Cliente: ${ride.passengerName || 'Passageiro'} (${ride.passengerPhone || '(11) 99876-5432'})`;
+
+  if (modalCash) modalCash.classList.remove('hidden');
+}
+
+window.confirmCashReceived = async function() {
+  if (!state.currentRide) return;
+  const ride = state.currentRide;
+  ride.cashCollected = true;
+  ride.cashStatus = 'CONFIRMED';
+
+  const cashRecord = {
+    id: ride.id || `cash-${Date.now()}`,
+    date: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+    driverName: ride.nearestDriverName || ride.driver?.name || 'Motorista',
+    passengerName: ride.passengerName || 'Passageiro',
+    amount: ride.price ? parseFloat(ride.price) : 25.00,
+    platformFee: parseFloat(((ride.price || 25.00) * 0.15).toFixed(2)),
+    status: 'CONFIRMED'
+  };
+
+  saveCashRecord(cashRecord);
+
+  try {
+    await fetch(`${BACKEND_URL}/api/rides/${ride.id}/cash-confirm`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(cashRecord)
+    });
+  } catch (err) {}
+
+  document.getElementById('modalCashCollection').classList.add('hidden');
+  showToast(`💵 Recebimento de R$ ${cashRecord.amount.toFixed(2).replace('.', ',')} confirmado! Baixa realizada com sucesso no sistema.`, 'success');
+
+  finishDeliveryAction();
+  loadAdminCashRecords();
+};
+
+window.reportCashNotPaid = async function() {
+  if (!state.currentRide) return;
+  const ride = state.currentRide;
+  ride.cashCollected = false;
+  ride.cashStatus = 'REPORTED_NOT_PAID';
+
+  const cashRecord = {
+    id: ride.id || `cash-${Date.now()}`,
+    date: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+    driverName: ride.nearestDriverName || ride.driver?.name || 'Motorista',
+    passengerName: ride.passengerName || 'Passageiro',
+    amount: ride.price ? parseFloat(ride.price) : 25.00,
+    platformFee: parseFloat(((ride.price || 25.00) * 0.15).toFixed(2)),
+    status: 'REPORTED_NOT_PAID'
+  };
+
+  saveCashRecord(cashRecord);
+
+  document.getElementById('modalCashCollection').classList.add('hidden');
+  showToast('⚠️ Falta de pagamento relatada ao Administrador para análise.', 'warning');
+
+  finishDeliveryAction();
+  loadAdminCashRecords();
+};
+
+function finishDeliveryAction() {
+  updateRideStatus('COMPLETED');
+
+  const btnDeliver = document.getElementById('btnDriverDeliver');
+  const cardDelivery = document.getElementById('deliveryAddressCard');
+  const actionsBox = document.getElementById('driverActions');
+
+  if (btnDeliver) btnDeliver.classList.add('hidden');
+  if (cardDelivery) cardDelivery.classList.add('hidden');
+  if (actionsBox) actionsBox.classList.add('hidden');
+
+  if (state.simulationInterval) clearInterval(state.simulationInterval);
+  showToast('🏁 Corrida / Entrega concluída com sucesso no sistema!', 'success');
+}
+
+function loadAdminCashRecords() {
+  const records = getCashRecords();
+  const tbody = document.getElementById('adminCashTable');
+  const totalElem = document.getElementById('adminTotalCashCollected');
+
+  let totalVal = 0;
+  if (tbody) tbody.innerHTML = '';
+
+  if (records.length === 0) {
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" style="text-align: center; padding: 20px; color: #64748b;">
+            Nenhum pagamento em dinheiro registrado ainda.
+          </td>
+        </tr>
+      `;
+    }
+    if (totalElem) totalElem.innerText = 'R$ 0,00';
+    return;
+  }
+
+  records.forEach(r => {
+    if (r.status === 'CONFIRMED') totalVal += r.amount;
+
+    if (tbody) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><strong>#${r.id.substring(0, 8)}</strong><br><small style="color: #64748b;">${r.date}</small></td>
+        <td><strong>${r.driverName}</strong></td>
+        <td><strong>${r.passengerName}</strong></td>
+        <td><strong style="color: #10b981;">R$ ${r.amount.toFixed(2).replace('.', ',')}</strong></td>
+        <td><small style="color: #0284c7;">R$ ${r.platformFee.toFixed(2).replace('.', ',')}</small></td>
+        <td>
+          <span style="color: ${r.status === 'CONFIRMED' ? '#10b981' : '#ef4444'}; font-weight: 800;">
+            ${r.status === 'CONFIRMED' ? '✅ Baixa Confirmada' : '⚠️ Não Pago (Relatado)'}
+          </span>
+        </td>
+        <td>
+          ${r.status !== 'CONFIRMED' ? `
+            <button class="btn-success" style="padding: 4px 8px; font-size: 0.7rem; font-weight: 800; border-radius: 6px; cursor: pointer;" onclick="window.adminManualCashWriteoff('${r.id}')">
+              ✅ Dar Baixa Manual
+            </button>
+          ` : '<span style="color: #10b981; font-weight: 800; font-size: 0.75rem;">Concluído</span>'}
+        </td>
+      `;
+      tbody.appendChild(tr);
+    }
+  });
+
+  if (totalElem) totalElem.innerText = `R$ ${totalVal.toFixed(2).replace('.', ',')}`;
+}
+
+window.adminManualCashWriteoff = function(recordId) {
+  const records = getCashRecords();
+  const target = records.find(r => r.id === recordId);
+  if (target) {
+    target.status = 'CONFIRMED';
+    localStorage.setItem('uberflow_cash_records', JSON.stringify(records));
+    showToast(`✅ Baixa manual efetuada para a corrida #${recordId.substring(0, 8)}!`, 'success');
+    loadAdminCashRecords();
+  }
+};

@@ -102,6 +102,7 @@
 
       <!-- Fare Categories & Booking Card -->
       <div class="booking-card hidden" id="cardBooking">
+        <div id="estimateKmBadge" style="text-align: center;"></div>
         <h3>Selecione a Modalidade</h3>
         <div class="categories-grid" id="categoriesGrid">
           <!-- Populated by JS -->
@@ -159,6 +160,7 @@
           </div>
 
           <div class="ride-summary-mini">
+            <div><span>Distância:</span> <strong id="rideSummaryKm" style="color: #0284c7; font-weight: 800;">0,0 km</strong></div>
             <div><span>Valor Total:</span> <strong id="rideSummaryPrice">R$ 18,50</strong></div>
             <div><span>Pagamento:</span> <span id="rideSummaryPay">PIX</span></div>
           </div>
@@ -429,8 +431,34 @@
               <i class="fa-solid fa-map-location-dot"></i> Criar Zona Promocional no Mapa
             </button>
           </form>
-          <div class="active-promo-list" id="activePromoList">
-            <!-- Populated by JS -->
+          <!-- Card de Gestão de Pagamentos em Dinheiro (Admin) -->
+          <div class="admin-box full-width-box" style="margin-top: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+              <h3><i class="fa-solid fa-money-bill-wave" style="color: #10b981;"></i> 💵 Gestão e Baixas de Pagamentos em Dinheiro</h3>
+              <span class="badge-live" style="background: rgba(16, 185, 129, 0.15); color: #047857; font-size: 0.85rem; padding: 6px 14px;">Total Coletado: <strong id="adminTotalCashCollected" style="margin-left: 4px; font-size: 1rem;">R$ 0,00</strong></span>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>ID / Data</th>
+                    <th>Motorista</th>
+                    <th>Cliente</th>
+                    <th>Valor Cobrado (R$)</th>
+                    <th>Taxa Plataforma (15%)</th>
+                    <th>Status da Baixa</th>
+                    <th>Ações Admin</th>
+                  </tr>
+                </thead>
+                <tbody id="adminCashTable">
+                  <tr>
+                    <td colspan="7" style="text-align: center; padding: 20px; color: #64748b;">
+                      Nenhum pagamento em dinheiro registrado ainda.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -513,34 +541,37 @@
     </div>
   </div>
 
-  <!-- MODAL AUTOMÁTICO DE ENDEREÇO DE ENTREGA (SURGE AO CLICAR EM COLETAR) -->
-  <div class="modal-overlay hidden" id="modalDeliveryAddress">
-    <div class="modal-card" style="border: 2px solid #10b981; text-align: center; max-width: 440px;">
-      <div style="background: rgba(16, 185, 129, 0.15); padding: 12px; border-radius: 12px; margin-bottom: 14px;">
-        <span class="badge" style="background: #10b981; color: #fff; font-weight: 800; font-size: 0.85rem; padding: 6px 12px; border-radius: 20px;">
-          📦 ENCOMENDA COLETADA COM SUCESSO!
+  <!-- MODAL DE COBRANÇA DE PAGAMENTO EM DINHEIRO (SURGE AO FINALIZAR CORRIDA EM DINHEIRO) -->
+  <div class="modal-overlay hidden" id="modalCashCollection">
+    <div class="modal-card" style="border: 3px solid #f59e0b; text-align: center; max-width: 440px; background: #ffffff;">
+      <div style="background: rgba(245, 158, 11, 0.15); padding: 14px; border-radius: 12px; margin-bottom: 14px;">
+        <span class="badge" style="background: #f59e0b; color: #fff; font-weight: 800; font-size: 0.85rem; padding: 6px 12px; border-radius: 20px;">
+          💵 PAGAMENTO EM DINHEIRO
         </span>
-        <h2 style="color: #fff; margin-top: 10px; font-size: 1.15rem;">Siga para o Endereço de Entrega do Cliente:</h2>
+        <h2 style="color: #0f172a; margin-top: 10px; font-size: 1.15rem; font-weight: 800;">Receber Pagamento do Cliente</h2>
       </div>
 
-      <div style="background: var(--bg-dark); padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); text-align: left; margin-bottom: 16px;">
-        <small style="color: #10b981; font-weight: 800; text-transform: uppercase; display: block; margin-bottom: 4px;">
-          <i class="fa-solid fa-truck-ramp-box"></i> LOCAL EXATO DA ENTREGA:
+      <div style="background: #f8fafc; padding: 18px; border-radius: 12px; border: 1px solid var(--border-color); text-align: center; margin-bottom: 16px;">
+        <small style="color: var(--text-muted); font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 4px;">
+          VALOR TOTAL A COBRAR DO CLIENTE:
         </small>
-        <h3 id="modalDeliveryDestText" style="color: #38bdf8; font-size: 1.15rem; font-weight: 800; margin: 0; line-height: 1.3;">
-          Parque Ibirapuera - Portão 3
-        </h3>
-        <p style="margin: 6px 0 0 0; color: var(--text-muted); font-size: 0.85rem;" id="modalDeliveryPassengerText">
+        <h1 id="cashAmountToCollectText" style="color: #10b981; font-size: 2.5rem; font-weight: 900; margin: 4px 0;">
+          R$ 0,00
+        </h1>
+        <p style="margin: 6px 0 0 0; color: #0f172a; font-size: 0.9rem; font-weight: 700;" id="cashPassengerInfoText">
           Cliente: Fernanda Lima
         </p>
+        <small style="color: #475569; display: block; margin-top: 8px;">
+          <i>O cliente escolheu pagar em dinheiro diretamente a você. Receba a quantia acima antes de dar baixa no sistema.</i>
+        </small>
       </div>
 
       <div style="display: flex; flex-direction: column; gap: 10px;">
-        <button class="btn-primary" style="background: linear-gradient(135deg, #10b981, #047857); padding: 14px; font-size: 1rem; font-weight: 800; border: none; border-radius: 10px; cursor: pointer; color: #fff;" onclick="window.confirmStartDeliveryNavigation()">
-          <i class="fa-solid fa-diamond-turn-right"></i> 🗺️ ABRIR NAVEGAÇÃO / MAPA DA ENTREGA
+        <button class="btn-success" style="padding: 14px; font-size: 1rem; font-weight: 800; border: none; border-radius: 10px; cursor: pointer; color: #fff;" onclick="window.confirmCashReceived()">
+          <i class="fa-solid fa-circle-check"></i> ✅ CONFIRMAR RECEBIMENTO (DAR BAIXA EM DINHEIRO)
         </button>
-        <button class="btn-secondary" style="padding: 10px; font-size: 0.85rem;" onclick="document.getElementById('modalDeliveryAddress').classList.add('hidden')">
-          Fechar Aviso
+        <button class="btn-secondary" style="padding: 10px; font-size: 0.85rem; color: #ef4444;" onclick="window.reportCashNotPaid()">
+          ⚠️ Cliente não pagou / Relatar ao Admin
         </button>
       </div>
     </div>
