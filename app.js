@@ -502,10 +502,17 @@ function initWebSocket() {
   });
 }
 
+function safeAddEventListener(id, event, handler) {
+  const elem = document.getElementById(id);
+  if (elem) {
+    elem.addEventListener(event, handler);
+  }
+}
+
 function initEventHandlers() {
-  document.getElementById('btnCalculateFare').addEventListener('click', async () => {
-    const originText = document.getElementById('inputOrigin').value;
-    const destText = document.getElementById('inputDestination').value;
+  safeAddEventListener('btnCalculateFare', 'click', async () => {
+    const originText = document.getElementById('inputOrigin')?.value;
+    const destText = document.getElementById('inputDestination')?.value;
 
     if (!originText || !destText) {
       showToast('Por favor, informe a origem e o destino!', 'warning');
@@ -513,12 +520,12 @@ function initEventHandlers() {
     }
 
     const btn = document.getElementById('btnCalculateFare');
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Buscando no mapa...';
+    if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Buscando no mapa...';
 
     const origin = await geocodeAddressText(originText, 'origin');
     const dest = await geocodeAddressText(destText, 'destination');
 
-    btn.innerHTML = '<i class="fa-solid fa-calculator"></i> Calcular Estimativa de Tarifa';
+    if (btn) btn.innerHTML = '<i class="fa-solid fa-calculator"></i> Calcular Estimativa de Tarifa';
 
     if (!origin || !dest) {
       showToast('Não foi possível localizar este endereço. Tente clicar direto no mapa!', 'warning');
@@ -563,12 +570,12 @@ function initEventHandlers() {
     }
 
     renderRouteOnMap(state.passengerMap, origin, dest, 'passenger');
-    document.getElementById('cardBooking').classList.remove('hidden');
+    document.getElementById('cardBooking')?.classList.remove('hidden');
     showToast('Estimativa calculada com sucesso!', 'success');
   });
 
-  document.getElementById('btnRequestRide').addEventListener('click', async () => {
-    const paymentMethod = document.getElementById('selectPayment').value;
+  safeAddEventListener('btnRequestRide', 'click', async () => {
+    const paymentMethod = document.getElementById('selectPayment')?.value || 'pix';
     
     let estimatedPrice = 18.50;
     if (state.fareEstimate && state.fareEstimate.options) {
@@ -597,15 +604,15 @@ function initEventHandlers() {
 
       if (state.socket) state.socket.emit('join_ride', ride.id);
 
-      document.getElementById('cardBooking').classList.add('hidden');
-      document.getElementById('cardActiveRide').classList.remove('hidden');
-      document.getElementById('stateSearching').classList.remove('hidden');
-      document.getElementById('matchedDriverInfo').classList.add('hidden');
+      document.getElementById('cardBooking')?.classList.add('hidden');
+      document.getElementById('cardActiveRide')?.classList.remove('hidden');
+      document.getElementById('stateSearching')?.classList.remove('hidden');
+      document.getElementById('matchedDriverInfo')?.classList.add('hidden');
 
-      document.getElementById('passengerStatus').innerText = 'Procurando Motorista...';
-      showToast('⚡ Viagem solicitada com sucesso! Tocando toque de chamada...', 'info');
+      const passStatus = document.getElementById('passengerStatus');
+      if (passStatus) passStatus.innerText = 'Procurando Motorista...';
+      showToast('⚡ Viagem solicitada com sucesso!', 'info');
 
-      // SEMPRE abrir o modal de despacho e TOCAR O TOQUE MELÓDICO DE CHAMADA
       showRideDispatchModal(ride);
     } catch (err) {
       console.error('Erro ao solicitar corrida:', err);
@@ -621,20 +628,21 @@ function initEventHandlers() {
       };
       state.currentRide = fallbackRide;
 
-      document.getElementById('cardBooking').classList.add('hidden');
-      document.getElementById('cardActiveRide').classList.remove('hidden');
-      document.getElementById('stateSearching').classList.remove('hidden');
+      document.getElementById('cardBooking')?.classList.add('hidden');
+      document.getElementById('cardActiveRide')?.classList.remove('hidden');
+      document.getElementById('stateSearching')?.classList.remove('hidden');
 
-      // SEMPRE abrir o modal de despacho e TOCAR O TOQUE MELÓDICO DE CHAMADA
       showRideDispatchModal(fallbackRide);
     }
   });
 
-  document.getElementById('toggleDriverOnline').addEventListener('change', async (e) => {
+  safeAddEventListener('toggleDriverOnline', 'change', async (e) => {
     const isOnline = e.target.checked;
     const label = document.getElementById('driverStatusLabel');
-    label.innerText = isOnline ? 'ONLINE' : 'OFFLINE';
-    label.style.color = isOnline ? '#10b981' : '#94a3b8';
+    if (label) {
+      label.innerText = isOnline ? 'ONLINE' : 'OFFLINE';
+      label.style.color = isOnline ? '#10b981' : '#94a3b8';
+    }
 
     const selectElem = document.getElementById('selectActiveDriver');
     if (selectElem && selectElem.value) {
@@ -678,7 +686,7 @@ function initEventHandlers() {
     renderOnlineFleetOnPassengerMap();
   });
 
-  document.getElementById('btnAutoMatch').addEventListener('click', async () => {
+  safeAddEventListener('btnAutoMatch', 'click', async () => {
     if (!state.currentRide) return;
     try {
       const res = await fetch(`${BACKEND_URL}/api/rides/${state.currentRide.id}/accept`, {
@@ -688,7 +696,7 @@ function initEventHandlers() {
       });
       const ride = await res.json();
       state.currentRide = ride;
-      state.socket.emit('join_ride', ride.id);
+      if (state.socket) state.socket.emit('join_ride', ride.id);
 
       renderRouteOnMap(state.driverMap, ride.origin, ride.destination, 'driver');
       updateDriverUI(ride);
@@ -699,7 +707,7 @@ function initEventHandlers() {
     }
   });
 
-  document.getElementById('btnAcceptRide').addEventListener('click', async () => {
+  safeAddEventListener('btnAcceptRide', 'click', async () => {
     stopSirenSound();
 
     if (!state.pendingDispatchRide) return;
@@ -707,7 +715,7 @@ function initEventHandlers() {
     const rideId = ride.id;
 
     clearInterval(state.dispatchTimerInterval);
-    document.getElementById('modalRideDispatch').classList.add('hidden');
+    document.getElementById('modalRideDispatch')?.classList.remove('hidden');
 
     const selectElem = document.getElementById('selectActiveDriver');
     const activeDriverId = selectElem?.value || state.currentDriverId || 'drv-1';
@@ -731,7 +739,6 @@ function initEventHandlers() {
 
     if (state.socket) state.socket.emit('join_ride', state.currentRide.id);
 
-    // FORÇAR ABERTURA AUTOMÁTICA DA TELA E MAPA DO MOTORISTA
     const tabDriver = document.querySelector('.tab-btn[data-mode="driver"]');
     if (tabDriver) tabDriver.click();
 
@@ -761,41 +768,43 @@ function initEventHandlers() {
     showToast('🗺️ Mapa do motorista aberto automaticamente! Navegando até o cliente...', 'success');
   });
 
-  document.getElementById('btnRejectRide').addEventListener('click', () => {
-    stopSirenSound(); // Parar sirene instantaneamente ao clicar em Recusar
+  safeAddEventListener('btnRejectRide', 'click', () => {
+    stopSirenSound();
     clearInterval(state.dispatchTimerInterval);
-    document.getElementById('modalRideDispatch').classList.add('hidden');
+    document.getElementById('modalRideDispatch')?.classList.remove('hidden');
     state.pendingDispatchRide = null;
     showToast('Chamada recusada.', 'info');
   });
 
-  document.getElementById('btnDriverArrived').addEventListener('click', () => {
+  safeAddEventListener('btnDriverArrived', 'click', () => {
     updateRideStatus('ARRIVED_PICKUP');
     showToast('📍 Você chegou ao local de embarque!', 'info');
   });
-  document.getElementById('btnDriverStart').addEventListener('click', () => {
+
+  safeAddEventListener('btnDriverStart', 'click', () => {
     updateRideStatus('IN_PROGRESS');
     showToast('🚗 Viagem iniciada! Indo ao destino...', 'success');
   });
-  document.getElementById('btnDriverComplete').addEventListener('click', () => {
+
+  safeAddEventListener('btnDriverComplete', 'click', () => {
     updateRideStatus('COMPLETED');
     if (state.simulationInterval) clearInterval(state.simulationInterval);
     showToast('🏁 Viagem concluída com sucesso! Valor creditado.', 'success');
   });
 
-  document.getElementById('btnSendChat').addEventListener('click', sendChatMessage);
-  document.getElementById('inputChatMsg').addEventListener('keypress', (e) => {
+  safeAddEventListener('btnSendChat', 'click', sendChatMessage);
+  safeAddEventListener('inputChatMsg', 'keypress', (e) => {
     if (e.key === 'Enter') sendChatMessage();
   });
 
-  document.getElementById('formTariffs').addEventListener('submit', async (e) => {
+  safeAddEventListener('formTariffs', 'submit', async (e) => {
     e.preventDefault();
     const payload = {
-      basePrice: document.getElementById('cfgBasePrice').value,
-      pricePerKm: document.getElementById('cfgPriceKm').value,
-      pricePerMin: document.getElementById('cfgPriceMin').value,
-      platformFeePercent: document.getElementById('cfgFeePercent').value,
-      surgeFactor: document.getElementById('cfgSurge').value
+      basePrice: document.getElementById('cfgBasePrice')?.value || 6.00,
+      pricePerKm: document.getElementById('cfgPriceKm')?.value || 2.50,
+      pricePerMin: document.getElementById('cfgPriceMin')?.value || 0.50,
+      platformFeePercent: document.getElementById('cfgFeePercent')?.value || 15,
+      surgeFactor: document.getElementById('cfgSurge')?.value || 1.0
     };
 
     try {
@@ -810,15 +819,15 @@ function initEventHandlers() {
     }
   });
 
-  document.getElementById('btnOpenModalDriver').addEventListener('click', () => {
-    document.getElementById('modalRegisterDriver').classList.remove('hidden');
+  safeAddEventListener('btnOpenModalDriver', 'click', () => {
+    document.getElementById('modalRegisterDriver')?.classList.remove('hidden');
   });
 
-  document.getElementById('btnOpenModalPassenger').addEventListener('click', () => {
-    document.getElementById('modalRegisterPassenger').classList.remove('hidden');
+  safeAddEventListener('btnOpenModalPassenger', 'click', () => {
+    document.getElementById('modalRegisterPassenger')?.classList.remove('hidden');
   });
 
-  document.getElementById('selectActiveDriver').addEventListener('change', async (e) => {
+  safeAddEventListener('selectActiveDriver', 'change', async (e) => {
     state.currentDriverId = e.target.value;
     try {
       const res = await fetch(`${BACKEND_URL}/api/drivers`);
@@ -828,9 +837,11 @@ function initEventHandlers() {
         const toggle = document.getElementById('toggleDriverOnline');
         const label = document.getElementById('driverStatusLabel');
         const isOnline = current.status === 'online';
-        toggle.checked = isOnline;
-        label.innerText = isOnline ? 'ONLINE' : 'OFFLINE';
-        label.style.color = isOnline ? '#10b981' : '#94a3b8';
+        if (toggle) toggle.checked = isOnline;
+        if (label) {
+          label.innerText = isOnline ? 'ONLINE' : 'OFFLINE';
+          label.style.color = isOnline ? '#10b981' : '#94a3b8';
+        }
         showToast(`Motorista ativo alterado para: ${current.name}`, 'info');
       }
     } catch (err) {
@@ -838,28 +849,28 @@ function initEventHandlers() {
     }
   });
 
-  document.getElementById('formRegisterDriver').addEventListener('submit', async (e) => {
+  safeAddEventListener('formRegisterDriver', 'submit', async (e) => {
     e.preventDefault();
     
-    const nameVal = document.getElementById('regDriverName').value.trim();
-    const phoneVal = document.getElementById('regDriverPhone').value.trim();
-    const typeVal = document.getElementById('regDriverType').value;
-    const modelVal = document.getElementById('regDriverModel').value.trim();
-    const colorVal = document.getElementById('regDriverColor').value.trim();
-    const plateVal = document.getElementById('regDriverPlate').value.trim();
+    const nameVal = document.getElementById('regDriverName')?.value.trim() || 'Motorista Cadastrado';
+    const phoneVal = document.getElementById('regDriverPhone')?.value.trim() || '(11) 99999-9999';
+    const typeVal = document.getElementById('regDriverType')?.value || 'uberx';
+    const modelVal = document.getElementById('regDriverModel')?.value.trim() || 'Veículo Cadastrado';
+    const colorVal = document.getElementById('regDriverColor')?.value.trim() || 'Preto';
+    const plateVal = document.getElementById('regDriverPlate')?.value.trim() || 'ABC-1234';
 
     const newDriverObj = {
       id: `drv-${Date.now()}`,
-      name: nameVal || 'Motorista Cadastrado',
-      phone: phoneVal || '(11) 99999-9999',
+      name: nameVal,
+      phone: phoneVal,
       rating: 5.0,
       status: 'online',
       verified: true,
       vehicle: {
-        model: modelVal || 'Veículo Cadastrado',
-        color: colorVal || 'Preto',
-        plate: plateVal || 'ABC-1234',
-        type: typeVal || 'uberx'
+        model: modelVal,
+        color: colorVal,
+        plate: plateVal,
+        type: typeVal
       },
       location: { lat: -23.561684 + (Math.random() - 0.5) * 0.01, lng: -46.655981 + (Math.random() - 0.5) * 0.01, heading: 0 },
       totalEarnings: 0,
@@ -893,21 +904,20 @@ function initEventHandlers() {
     savePersistedDriver(newDriverObj);
     state.currentDriverId = newDriverObj.id;
 
-    document.getElementById('modalRegisterDriver').classList.add('hidden');
-    document.getElementById('formRegisterDriver').reset();
+    document.getElementById('modalRegisterDriver')?.classList.add('hidden');
+    document.getElementById('formRegisterDriver')?.reset();
 
     showToast(`🎉 Motorista "${newDriverObj.name}" (${newDriverObj.vehicle.model}) CADASTRADO E APROVADO COM SUCESSO!`, 'success');
     await loadAdminDrivers();
     renderOnlineFleetOnPassengerMap();
   });
 
-  // Handler de Mapear Zona Promocional / Desconto (Admin)
-  document.getElementById('formPromoZone').addEventListener('submit', async (e) => {
+  safeAddEventListener('formPromoZone', 'submit', async (e) => {
     e.preventDefault();
     const payload = {
-      name: document.getElementById('promoName').value,
-      discountPercent: document.getElementById('promoDiscount').value,
-      validDays: document.getElementById('promoDays').value
+      name: document.getElementById('promoName')?.value,
+      discountPercent: document.getElementById('promoDiscount')?.value,
+      validDays: document.getElementById('promoDays')?.value
     };
 
     try {
@@ -918,9 +928,8 @@ function initEventHandlers() {
       });
       const zone = await res.json();
       showToast(`🏷️ ${zone.name} (${zone.discountPercent}% OFF) ativada com sucesso!`, 'success');
-      document.getElementById('formPromoZone').reset();
+      document.getElementById('formPromoZone')?.reset();
 
-      // Desenhar Zona Promocional Dourada no Mapa do Passageiro
       if (state.passengerMap) {
         L.circle([LOCATIONS.MASP.lat, LOCATIONS.MASP.lng], {
           color: '#f59e0b',
@@ -934,11 +943,11 @@ function initEventHandlers() {
     }
   });
 
-  document.getElementById('formRegisterPassenger').addEventListener('submit', (e) => {
+  safeAddEventListener('formRegisterPassenger', 'submit', (e) => {
     e.preventDefault();
-    const name = document.getElementById('regPassengerName').value;
-    document.getElementById('modalRegisterPassenger').classList.add('hidden');
-    document.getElementById('formRegisterPassenger').reset();
+    const name = document.getElementById('regPassengerName')?.value || 'Cliente';
+    document.getElementById('modalRegisterPassenger')?.classList.add('hidden');
+    document.getElementById('formRegisterPassenger')?.reset();
     showToast(`👤 Perfil de passageiro "${name}" criado com sucesso!`, 'success');
   });
 }

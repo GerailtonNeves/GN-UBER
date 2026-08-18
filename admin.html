@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UberFlow - Painel Administrativo Backoffice</title>
+  
+  <!-- App Icons & Favicon -->
+  <link rel="icon" type="image/jpeg" href="assets/icon_admin.jpg" />
+  <link rel="apple-touch-icon" href="assets/icon_admin.jpg" />
+
+  <!-- CSS External Libraries -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="logo">
+      <div class="logo-icon-wrap" style="background: linear-gradient(135deg, #f59e0b, #d97706);"><i class="fa-solid fa-gears logo-icon"></i></div>
+      <div class="logo-text">
+        <span>UBER<strong>FLOW</strong></span>
+        <small class="version" style="color: #f59e0b;">🛡️ PAINEL ADMINISTRATIVO BACKOFFICE</small>
+      </div>
+      <span class="badge-live"><i class="fa-solid fa-circle blink"></i> LIVE ADMIN</span>
+    </div>
+
+    <!-- Navigation Shortcuts -->
+    <nav class="mode-tabs">
+      <a href="index.html" class="tab-btn"><i class="fa-solid fa-house"></i> Portal Principal</a>
+      <a href="cliente.html" class="tab-btn"><i class="fa-solid fa-user"></i> App Cliente</a>
+      <a href="motorista.html" class="tab-btn"><i class="fa-solid fa-taxi"></i> App Motorista</a>
+    </nav>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-container mode-admin" id="mainLayout">
+
+    <!-- ADMIN BACKOFFICE SECTION -->
+    <section class="app-panel admin-panel" id="panelAdmin">
+      <div class="panel-header">
+        <h2><i class="fa-solid fa-chart-line" style="color: #f59e0b;"></i> Dashboard Administrativo & Controle Geral da Frota</h2>
+        <span class="status-chip" style="background: rgba(245, 158, 11, 0.15); color: #d97706;">Painel de Controle</span>
+      </div>
+
+      <!-- Metrics Summary Grid -->
+      <div class="admin-metrics-grid">
+        <div class="metric-card">
+          <div class="icon"><i class="fa-solid fa-car"></i></div>
+          <div>
+            <span class="title">Total de Corridas / Entregas</span>
+            <h3 class="number" id="adminTotalRides">0</h3>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="icon" style="background: rgba(16, 185, 129, 0.15); color: var(--success);"><i class="fa-solid fa-money-bill-wave"></i></div>
+          <div>
+            <span class="title">Receita Total da Plataforma</span>
+            <h3 class="number" id="adminPlatformRevenue" style="color: var(--success);">R$ 0,00</h3>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="icon" style="background: rgba(245, 158, 11, 0.15); color: var(--warning);"><i class="fa-solid fa-users"></i></div>
+          <div>
+            <span class="title">Motoristas na Plataforma</span>
+            <h3 class="number" id="adminTotalDrivers">0</h3>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="icon" style="background: rgba(2, 132, 199, 0.15); color: #0284c7;"><i class="fa-solid fa-route"></i></div>
+          <div>
+            <span class="title">Total de Km Rodados no Sistema</span>
+            <h3 class="number" id="adminTotalKm" style="color: #0284c7;">0.0 km</h3>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-body-layout">
+        <!-- Motoristas Cadastrados Table (Frota Real) -->
+        <div class="admin-box">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3><i class="fa-solid fa-id-card"></i> Gestão de Frota & Aprovação de Documentos</h3>
+            <button class="btn-primary btn-sm" onclick="document.getElementById('modalRegisterDriver').classList.remove('hidden')"><i class="fa-solid fa-user-plus"></i> + Nova Moto/Carro</button>
+          </div>
+          
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Motorista / WhatsApp</th>
+                  <th>Veículo / Placa</th>
+                  <th>Status</th>
+                  <th>CNH & Docs</th>
+                  <th>Ações de Gestão</th>
+                </tr>
+              </thead>
+              <tbody id="adminDriversTable">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tariff & Platform Controls Form -->
+        <div class="admin-box">
+          <h3><i class="fa-solid fa-sliders"></i> Preços & Regras de Tarifa</h3>
+          <form id="formTariffs" class="tariffs-form">
+            <div class="form-group">
+              <label>Preço Base (R$):</label>
+              <input type="number" step="0.50" id="cfgBasePrice" value="6.00" required>
+            </div>
+            <div class="form-group">
+              <label>Valor por Km (R$):</label>
+              <input type="number" step="0.10" id="cfgPriceKm" value="2.50" required>
+            </div>
+            <div class="form-group">
+              <label>Valor por Minuto (R$):</label>
+              <input type="number" step="0.05" id="cfgPriceMin" value="0.50" required>
+            </div>
+            <div class="form-group">
+              <label>Comissão da Plataforma (%):</label>
+              <input type="number" id="cfgFeePercent" value="15" required>
+            </div>
+            <div class="form-group">
+              <label>Tarifa Dinâmica / Multiplicador:</label>
+              <select id="cfgSurge">
+                <option value="1.0">1.0x (Normal)</option>
+                <option value="1.2">1.2x (Horário de Pico)</option>
+                <option value="1.5">1.5x (Chuva / Alta Demanda)</option>
+                <option value="2.0">2.0x (Madrugada / Eventos)</option>
+              </select>
+            </div>
+            <button type="submit" class="btn-primary full-width">
+              <i class="fa-solid fa-floppy-disk"></i> Salvar Novas Tarifas
+            </button>
+          </form>
+        </div>
+
+        <!-- Real-Time Ride Tracker Table -->
+        <div class="admin-box full-width-box">
+          <h3><i class="fa-solid fa-list-check"></i> Monitoramento de Corridas & Entregas em Tempo Real</h3>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Passageiro / Modalidade</th>
+                  <th>Origem → Destino</th>
+                  <th>Distância (Km)</th>
+                  <th>Valor Total (R$)</th>
+                  <th>Taxa Admin (R$)</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="adminRidesTable">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Card de Gestão de Pagamentos em Dinheiro (Admin) -->
+        <div class="admin-box full-width-box" style="margin-top: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <h3><i class="fa-solid fa-money-bill-wave" style="color: #10b981;"></i> 💵 Gestão e Baixas de Pagamentos em Dinheiro</h3>
+            <span class="badge-live" style="background: rgba(16, 185, 129, 0.15); color: #047857; font-size: 0.85rem; padding: 6px 14px;">Total Coletado: <strong id="adminTotalCashCollected" style="margin-left: 4px; font-size: 1rem;">R$ 0,00</strong></span>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>ID / Data</th>
+                  <th>Motorista</th>
+                  <th>Cliente</th>
+                  <th>Valor Cobrado (R$)</th>
+                  <th>Taxa Plataforma (15%)</th>
+                  <th>Status da Baixa</th>
+                  <th>Ações Admin</th>
+                </tr>
+              </thead>
+              <tbody id="adminCashTable">
+                <tr>
+                  <td colspan="7" style="text-align: center; padding: 20px; color: #64748b;">
+                    Nenhum pagamento em dinheiro registrado ainda.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL CADASTRO DE NOVO MOTORISTA / MOTO -->
+  <div class="modal-overlay hidden" id="modalRegisterDriver">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-id-card"></i> Cadastrar Novo Motorista ou Moto</h3>
+        <button class="btn-close" onclick="document.getElementById('modalRegisterDriver').classList.add('hidden')">&times;</button>
+      </div>
+      <form id="formRegisterDriver" class="modal-form">
+        <div class="form-group">
+          <label>Nome Completo:</label>
+          <input type="text" id="regDriverName" placeholder="Ex: João da Silva" required>
+        </div>
+        <div class="form-group">
+          <label>Telefone / WhatsApp:</label>
+          <input type="text" id="regDriverPhone" placeholder="(11) 99999-9999" required>
+        </div>
+        <div class="form-group">
+          <label>Tipo de Veículo:</label>
+          <select id="regDriverType" required>
+            <option value="uberx">🚗 Carro Econômico (UberX)</option>
+            <option value="comfort">🚘 Carro Comfort (Espaçoso)</option>
+            <option value="moto">🏍️ Moto Passageiro</option>
+            <option value="delivery">📦 Moto / Bike Entrega Flash</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Modelo do Veículo:</label>
+          <input type="text" id="regDriverModel" placeholder="Ex: Honda CG 160 Fan / Toyota Yaris" required>
+        </div>
+        <div class="form-group">
+          <label>Cor do Veículo:</label>
+          <input type="text" id="regDriverColor" placeholder="Ex: Preto" required>
+        </div>
+        <div class="form-group">
+          <label>Placa Oficial:</label>
+          <input type="text" id="regDriverPlate" placeholder="Ex: ABC-1234" required>
+        </div>
+        <button type="submit" class="btn-primary full-width">
+          <i class="fa-solid fa-check"></i> Cadastrar e Ficar ONLINE
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- JS External Libraries & Application Scripts -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const mainLayout = document.getElementById('mainLayout');
+      if (mainLayout) {
+        mainLayout.className = 'main-container mode-admin';
+      }
+    });
+  </script>
+</body>
+</html>

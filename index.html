@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>UberFlow Engine v2.0 - Plataforma On-Demand de Transporte</title>
+  <title>UberFlow - Portal Oficial do Sistema On-Demand</title>
   
   <!-- App Icons & Favicon -->
   <link rel="icon" type="image/jpeg" href="assets/icon_passageiro.jpg" />
@@ -20,596 +20,122 @@
   <!-- Toast Notification Container -->
   <div id="toastContainer" class="toast-container"></div>
 
-  <!-- Top Navigation Header -->
+  <!-- Header Superior Oficial -->
   <header class="app-header">
     <div class="logo">
-      <div class="logo-icon-wrap"><i class="fa-solid fa-car-side logo-icon"></i></div>
+      <div class="logo-icon-wrap" style="background: linear-gradient(135deg, #0284c7, #0369a1);"><i class="fa-solid fa-car-side logo-icon"></i></div>
       <div class="logo-text">
         <span>UBER<strong>FLOW</strong></span>
-        <small class="version">v2.0 Enterprise Engine</small>
+        <small class="version" style="color: #0284c7;">🚀 PLATAFORMA OFICIAL v3.0</small>
       </div>
-      <span class="badge-live"><i class="fa-solid fa-circle blink"></i> LIVE ENGINE</span>
+      <span class="badge-live"><i class="fa-solid fa-circle blink"></i> SISTEMA OPERACIONAL & ONLINE</span>
     </div>
 
-    <!-- Mode Selector Tabs -->
+    <!-- Navegação de Atalhos -->
     <nav class="mode-tabs">
-      <button class="tab-btn active" data-mode="split">
-        <i class="fa-solid fa-columns"></i> Simulação Dupla (Lado a Lado)
-      </button>
-      <button class="tab-btn" data-mode="passenger">
-        <i class="fa-solid fa-user"></i> App Passageiro
-      </button>
-      <button class="tab-btn" data-mode="driver">
-        <i class="fa-solid fa-id-card"></i> App Motorista / Moto
-      </button>
-      <button class="tab-btn" data-mode="admin">
-        <i class="fa-solid fa-gears"></i> Painel Admin
-      </button>
+      <a href="cliente.html" class="tab-btn"><i class="fa-solid fa-mobile-screen"></i> App Cliente</a>
+      <a href="motorista.html" class="tab-btn"><i class="fa-solid fa-taxi"></i> App Motorista</a>
+      <a href="admin.html" class="tab-btn"><i class="fa-solid fa-gears"></i> Painel Admin</a>
     </nav>
   </header>
 
-  <!-- Main Container -->
-  <main class="main-container" id="mainLayout">
+  <!-- Banner Hero Principal -->
+  <section style="padding: 32px 24px 20px 24px; text-align: center; max-width: 1200px; margin: 0 auto;">
+    <div style="background: #ffffff; border: 2px solid var(--border-color); border-radius: 20px; padding: 32px 20px; box-shadow: var(--shadow);">
+      <span style="background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; font-weight: 800; font-size: 0.85rem; padding: 6px 16px; border-radius: 20px; display: inline-flex; align-items: center; gap: 6px; margin-bottom: 14px;">
+        ⚡ PLATAFORMA PROFISSIONAL DE TRANSPORTE & ENTREGAS
+      </span>
+      <h1 style="color: #0f172a; font-size: 2.2rem; font-weight: 800; margin-bottom: 10px;">
+        Bem-vindo ao Sistema UberFlow Engine
+      </h1>
+      <p style="color: #475569; font-size: 1rem; font-weight: 600; max-width: 700px; margin: 0 auto 28px auto; line-height: 1.5;">
+        Selecione abaixo qual aplicativo você deseja acessar. Cada sistema é 100% independente, otimizado para celulares, tablets e computadores, com mapas, GPS e notificações ativas!
+      </p>
 
-    <!-- PASSENGER APP SECTION -->
-    <section class="app-panel passenger-panel" id="panelPassenger">
-      <div class="panel-header">
-        <h2><i class="fa-solid fa-location-dot"></i> Passageiro - Solicitar Viagem ou Entrega</h2>
-        <div class="header-actions">
-          <button id="btnOpenModalPassenger" class="btn-secondary btn-sm"><i class="fa-solid fa-user-plus"></i> Novo Passageiro</button>
-          <span class="status-chip" id="passengerStatus">Pronto para viajar</span>
-        </div>
-      </div>
-
-      <!-- Map View -->
-      <div class="map-container">
-        <div id="mapPassenger" class="leaflet-map"></div>
+      <!-- 3 CARDS DOS APLICATIVOS PRINCIPAIS -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; text-align: left;">
         
-        <!-- Address Floating Bar -->
-        <div class="map-controls-floating">
-          <div class="input-group input-group-relative">
-            <i class="fa-solid fa-circle-dot origin-icon"></i>
-            <input type="text" id="inputOrigin" class="address-input" placeholder="Digite o nome da rua e cidade de origem..." value="" autocomplete="off" />
-            <button type="button" class="btn-icon" id="btnSearchOrigin" title="Buscar Origem"><i class="fa-solid fa-magnifying-glass"></i></button>
-            <div id="suggestionsOrigin" class="autocomplete-dropdown hidden"></div>
-          </div>
-          
-          <div class="input-group input-group-relative">
-            <i class="fa-solid fa-location-pin dest-icon"></i>
-            <input type="text" id="inputDestination" class="address-input" placeholder="Digite o nome da rua e cidade de destino..." value="" autocomplete="off" />
-            <button type="button" class="btn-icon" id="btnSearchDest" title="Buscar Destino"><i class="fa-solid fa-magnifying-glass"></i></button>
-            <div id="suggestionsDest" class="autocomplete-dropdown hidden"></div>
-          </div>
-
-          <!-- Quick Address Chips -->
-          <div class="quick-chips">
-            <span class="chip-title">Atalhos:</span>
-            <button type="button" class="chip-btn" onclick="setPresetDestination('MASP')">📍 MASP</button>
-            <button type="button" class="chip-btn" onclick="setPresetDestination('CONGONHAS')">✈️ Congonhas</button>
-            <button type="button" class="chip-btn" onclick="setPresetDestination('IBIRAPUERA')">🌳 Ibirapuera</button>
-            <button type="button" class="chip-btn" onclick="setPresetDestination('SE')">🏛️ Sé</button>
-          </div>
-
-          <div class="map-hint">
-            <small><i class="fa-solid fa-mouse-pointer"></i> <strong>Dica:</strong> Clique direto no mapa para marcar a Origem (🟢) e Destino (🔴)!</small>
-          </div>
-
-          <button id="btnCalculateFare" class="btn-primary full-width">
-            <i class="fa-solid fa-calculator"></i> Calcular Estimativa de Tarifa
-          </button>
-        </div>
-      </div>
-
-      <!-- Fare Categories & Booking Card -->
-      <div class="booking-card hidden" id="cardBooking">
-        <div id="estimateKmBadge" style="text-align: center;"></div>
-        <h3>Selecione a Modalidade</h3>
-        <div class="categories-grid" id="categoriesGrid">
-          <!-- Populated by JS -->
-        </div>
-
-        <div class="payment-method-selector">
-          <label><i class="fa-solid fa-wallet"></i> Forma de Pagamento:</label>
-          <select id="selectPayment">
-            <option value="pix">⚡ PIX Instantâneo</option>
-            <option value="credit_card">💳 Cartão de Crédito / Débito</option>
-            <option value="cash">💵 Dinheiro ao Motorista</option>
-          </select>
-        </div>
-
-        <button id="btnRequestRide" class="btn-success full-width pulse">
-          <i class="fa-solid fa-car"></i> Confirmar e Solicitar Viagem
-        </button>
-      </div>
-
-      <!-- Live Ride Tracker Card (Active Ride) -->
-      <div class="active-ride-card hidden" id="cardActiveRide">
-        <div class="searching-state" id="stateSearching">
-          <div class="radar-spinner"></div>
-          <h4>Procurando motoristas próximos...</h4>
-          <p style="color: #f59e0b; font-weight: 600;">⚠️ Ligue a chave <strong>ONLINE</strong> no painel do motorista (lado direito) para aceitar!</p>
-          <button id="btnAutoMatch" class="btn-primary btn-sm" style="margin-top: 10px;">
-            <i class="fa-solid fa-bolt"></i> Aceitar Corrida com o Motorista Mais Próximo
-          </button>
-        </div>
-
-        <div class="matched-driver-info hidden" id="matchedDriverInfo">
-          <div class="driver-profile-header">
-            <div class="avatar"><i class="fa-solid fa-user-tie"></i></div>
-            <div class="details">
-              <h4 id="rideDriverName">Carlos Silva</h4>
-              <p><i class="fa-solid fa-star star"></i> <span id="rideDriverRating">4.9</span> • <span id="rideDriverVehicleType">🚘 Carro</span></p>
-              <div class="vehicle-trust-box">
-                <span class="vehicle-model" id="rideDriverVehicleModel">Toyota Corolla (Vermelho)</span>
-                <span class="plate-badge-official" id="rideDriverPlate">ABC-1D23</span>
+        <!-- CARD 1: APP CLIENTE -->
+        <div style="background: linear-gradient(180deg, #ffffff 0%, #f0f9ff 100%); border: 2px solid #bae6fd; border-radius: 18px; padding: 24px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 10px 28px rgba(2, 132, 199, 0.12); transition: transform 0.2s ease;">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+              <div style="width: 54px; height: 54px; background: linear-gradient(135deg, #0284c7, #0369a1); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.7rem; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);">
+                📱
               </div>
+              <span style="background: #e0f2fe; color: #0284c7; font-weight: 800; font-size: 0.75rem; padding: 4px 12px; border-radius: 12px;">Para Clientes</span>
             </div>
-            <div class="action-call">
-              <button class="btn-circle" onclick="showToast('📞 Ligação iniciada para o motorista...', 'info')" title="Ligar para o Motorista"><i class="fa-solid fa-phone"></i></button>
+            <h3 style="color: #0f172a; font-size: 1.35rem; font-weight: 800; margin-bottom: 8px;">Aplicativo do Cliente</h3>
+            <p style="color: #475569; font-size: 0.88rem; line-height: 1.45; margin-bottom: 18px;">
+              Solicite corridas de carro, viagens de moto e entregas flash com autocomplete de endereços, cálculo de quilometragem e mapas em tempo real.
+            </p>
+            <ul style="list-style: none; padding: 0; margin: 0 0 22px 0; font-size: 0.84rem; color: #334155; display: flex; flex-direction: column; gap: 10px;">
+              <li style="display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-circle-check" style="color: #0284c7;"></i> Autocomplete no Mapa (Origem e Destino)</li>
+              <li style="display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-circle-check" style="color: #0284c7;"></i> Modalidades UberX, Comfort, Moto e Entrega</li>
+              <li style="display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-circle-check" style="color: #0284c7;"></i> Rastreamento ao Vivo do Veículo & Chat Direct</li>
+            </ul>
+          </div>
+          <a href="cliente.html" class="btn-primary full-width" style="text-align: center; text-decoration: none; padding: 14px; font-size: 0.95rem; background: linear-gradient(135deg, #0284c7, #0369a1); border-radius: 12px; display: block;">
+            🚀 ABRIR APP DO CLIENTE
+          </a>
+        </div>
+
+        <!-- CARD 2: APP MOTORISTA -->
+        <div style="background: linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%); border: 2px solid #a7f3d0; border-radius: 18px; padding: 24px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 10px 28px rgba(16, 185, 129, 0.12); transition: transform 0.2s ease;">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+              <div style="width: 54px; height: 54px; background: linear-gradient(135deg, #10b981, #047857); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.7rem; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);">
+                🚗
+              </div>
+              <span style="background: #d1fae5; color: #047857; font-weight: 800; font-size: 0.75rem; padding: 4px 12px; border-radius: 12px;">Para Motoristas</span>
             </div>
+            <h3 style="color: #0f172a; font-size: 1.35rem; font-weight: 800; margin-bottom: 8px;">Aplicativo do Motorista</h3>
+            <p style="color: #475569; font-size: 0.88rem; line-height: 1.45; margin-bottom: 18px;">
+              Fique online, configure formas de pagamento aceitas, receba corridas com sirene sonora, navegue com GPS até a coleta/entrega e dê baixa em dinheiro!
+            </p>
+            <ul style="list-style: none; padding: 0; margin: 0 0 22px 0; font-size: 0.84rem; color: #334155; display: flex; flex-direction: column; gap: 10px;">
+              <li style="display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Status ONLINE/OFFLINE com Sirene de Chamada</li>
+              <li style="display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Preferências de Pagamento (PIX, Cartão, Dinheiro)</li>
+              <li style="display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Botões Coletar na Origem & Entregar no Destino</li>
+              <li style="display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Voo Automático de Mapa & Ligação WhatsApp</li>
+            </ul>
           </div>
-          <div class="security-badge-trust">
-            <i class="fa-solid fa-shield-halved"></i> <span>Veículo Verificado e Rastreado em Tempo Real</span>
-          </div>
+          <a href="motorista.html" class="btn-success full-width" style="text-align: center; text-decoration: none; padding: 14px; font-size: 0.95rem; border-radius: 12px; display: block;">
+            🚘 ABRIR APP DO MOTORISTA
+          </a>
+        </div>
 
-          <div class="ride-progress-bar">
-            <div class="step" id="stepAccepted"><span>1</span> Aceito</div>
-            <div class="step" id="stepArrived"><span>2</span> No Local</div>
-            <div class="step" id="stepInProgress"><span>3</span> Em Viagem</div>
-            <div class="step" id="stepCompleted"><span>4</span> Finalizado</div>
-          </div>
-
-          <div class="ride-summary-mini">
-            <div><span>Distância:</span> <strong id="rideSummaryKm" style="color: #0284c7; font-weight: 800;">0,0 km</strong></div>
-            <div><span>Valor Total:</span> <strong id="rideSummaryPrice">R$ 18,50</strong></div>
-            <div><span>Pagamento:</span> <span id="rideSummaryPay">PIX</span></div>
-          </div>
-
-          <!-- Chat Box -->
-          <div class="chat-container">
-            <div class="chat-messages" id="chatBox">
-              <div class="msg system">Corrida iniciada no sistema UberFlow Engine.</div>
+        <!-- CARD 3: PAINEL ADMIN -->
+        <div style="background: linear-gradient(180deg, #ffffff 0%, #fffbeb 100%); border: 2px solid #fde68a; border-radius: 18px; padding: 24px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 10px 28px rgba(245, 158, 11, 0.12); transition: transform 0.2s ease;">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+              <div style="width: 54px; height: 54px; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.7rem; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);">
+                🛡️
+              </div>
+              <span style="background: #fef3c7; color: #b45309; font-weight: 800; font-size: 0.75rem; padding: 4px 12px; border-radius: 12px;">Administração</span>
             </div>
-            <div class="chat-input">
-              <input type="text" id="inputChatMsg" placeholder="Enviar mensagem ao motorista..." />
-              <button id="btnSendChat"><i class="fa-solid fa-paper-plane"></i></button>
-            </div>
+            <h3 style="color: #0f172a; font-size: 1.35rem; font-weight: 800; margin-bottom: 8px;">Painel Backoffice Admin</h3>
+            <p style="color: #475569; font-size: 0.88rem; line-height: 1.45; margin-bottom: 18px;">
+              Controle total de frota, aprovação de documentos CNH, exclusão definitiva de motoristas via lista negra, baixas de dinheiro e regras tarifárias.
+            </p>
+            <ul style="list-style: none; padding: 0; margin: 0 0 22px 0; font-size: 0.84rem; color: #334155; display: flex; flex-direction: column; gap: 10px;">
+              <li style="display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-circle-check" style="color: #f59e0b;"></i> Gestão de Frota & Exclusão com Lista Negra</li>
+              <li style="display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-circle-check" style="color: #f59e0b;"></i> Gestão & Baixas de Pagamentos em Dinheiro</li>
+              <li style="display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-circle-check" style="color: #f59e0b;"></i> Faturamento Total & Soma Geral de Km Rodados</li>
+            </ul>
           </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- DRIVER APP SECTION -->
-    <section class="app-panel" id="panelDriver">
-      <div class="panel-header">
-        <h2><i class="fa-solid fa-taxi icon-driver"></i> Painel do Motorista / Moto</h2>
-        
-        <div class="header-actions">
-          <button class="btn-primary btn-sm" onclick="document.getElementById('modalRegisterDriver').classList.remove('hidden')">
-            <i class="fa-solid fa-user-plus"></i> + Nova Moto/Carro
-          </button>
-          
-          <select id="selectActiveDriver" class="driver-select" onchange="window.switchActiveDriver(this.value)">
-            <!-- Populated dynamically -->
-          </select>
-          
-          <div class="toggle-online">
-            <span>OFFLINE</span>
-            <label class="switch">
-              <input type="checkbox" id="toggleDriverOnline">
-              <span class="slider"></span>
-            </label>
-            <span style="color: var(--success);">ONLINE</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Map View -->
-      <div class="map-container">
-        <div id="mapDriver" class="leaflet-map"></div>
-      </div>
-
-      <!-- Driver Controls & Earnings Box -->
-      <div class="driver-dashboard-footer">
-        <!-- Caixa de Preferências de Formas de Pagamento do Motorista -->
-        <div class="driver-payment-preferences" style="background: #ffffff; border: 1px solid var(--border-color); padding: 12px 16px; border-radius: 14px; margin-bottom: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.03);">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <strong style="color: #0f172a; font-size: 0.85rem; font-weight: 800; display: flex; align-items: center; gap: 6px;">
-              <i class="fa-solid fa-wallet" style="color: var(--primary);"></i> Formas de Pagamento que Aceito Receber:
-            </strong>
-            <div>
-              <button type="button" class="chip-btn" onclick="window.setDriverPaymentPrefsAll(true)">Marcar Todos</button>
-              <button type="button" class="chip-btn" onclick="window.setDriverPaymentPrefsAll(false)">Desmarcar</button>
-            </div>
-          </div>
-          <div style="display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.82rem; font-weight: 700; color: #0f172a;">
-            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-              <input type="checkbox" id="prefPayPix" checked onchange="window.saveDriverPaymentPrefs()"> ⚡ PIX
-            </label>
-            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-              <input type="checkbox" id="prefPayCard" checked onchange="window.saveDriverPaymentPrefs()"> 💳 Cartão
-            </label>
-            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-              <input type="checkbox" id="prefPayCash" checked onchange="window.saveDriverPaymentPrefs()"> 💵 Dinheiro
-            </label>
-          </div>
+          <a href="admin.html" class="btn-primary full-width" style="text-align: center; text-decoration: none; padding: 14px; font-size: 0.95rem; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 12px; display: block;">
+            🛡️ ABRIR PAINEL ADMINISTRATIVO
+          </a>
         </div>
 
-        <div class="earnings-summary">
-          <div class="earning-box">
-            <span class="label">Ganhos do Dia</span>
-            <strong class="val" id="driverEarningsTotal">R$ 345,50</strong>
-          </div>
-          <div class="earning-box">
-            <span class="label">Corridas Concluídas</span>
-            <strong class="val" id="driverRidesCount">14</strong>
-          </div>
-          <div class="earning-box">
-            <span class="label">Avaliação</span>
-            <strong class="val"><i class="fa-solid fa-star star"></i> 4.90</strong>
-          </div>
-        </div>
-
-        <div class="driver-active-actions hidden" id="driverActions">
-          <h4 id="driverCurrentRideTitle">Corrida ou Entrega em Andamento</h4>
-          
-          <!-- Bloco de Contato do Cliente com Nome, Telefone e Botão Ligar -->
-          <div style="background: rgba(249, 87, 0, 0.12); border: 1px solid var(--primary); padding: 10px 14px; border-radius: 12px; margin: 10px 0; display: flex; align-items: center; justify-content: space-between;">
-            <div>
-              <span style="color: var(--text-muted); font-size: 0.75rem; display: block;">Cliente / Passageiro:</span>
-              <strong id="driverPassengerNameText" style="color: #ffffff; font-size: 0.95rem;">Fernanda Lima</strong><br>
-              <small id="driverPassengerPhoneText" style="color: var(--primary); font-weight: 800;">📞 (11) 99876-5432</small>
-            </div>
-            <a id="btnCallPassenger" href="https://wa.me/5511998765432" target="_blank" class="btn-success" style="padding: 8px 12px; font-size: 0.75rem; font-weight: 800; text-decoration: none; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px;">
-              <i class="fa-solid fa-phone"></i> Ligar / Zap
-            </a>
-          </div>
-
-          <p id="driverCurrentRideSub" style="font-size: 0.8rem; margin-bottom: 10px;"></p>
-
-          <div class="action-buttons-group">
-            <button id="btnOpenGPS" class="btn-primary" style="background: linear-gradient(135deg, #0284c7, #0369a1); width: 100%; margin-bottom: 6px; font-weight: 800; padding: 10px; font-size: 0.82rem;" onclick="window.openDriverGPSNavigation()"><i class="fa-solid fa-location-arrow"></i> 🗺️ ABRIR NAVEGAÇÃO GPS DO CLIENTE</button>
-            
-            <!-- Botões Especiais de Coleta & Entrega (Compactos e Elegantes) -->
-            <button id="btnDriverCollect" class="btn-warning" style="background: linear-gradient(135deg, #f59e0b, #d97706); width: 100%; margin-bottom: 6px; font-weight: 800; padding: 10px 14px; font-size: 0.82rem; border: none; border-radius: 8px; color: #fff; cursor: pointer;"><i class="fa-solid fa-box"></i> 📦 COLETAR ENCOMENDA (NA ORIGEM)</button>
-            
-            <button id="btnDriverDeliver" class="btn-success hidden" style="background: linear-gradient(135deg, #10b981, #059669); width: 100%; margin-bottom: 6px; font-weight: 800; padding: 10px 14px; font-size: 0.82rem; border: none; border-radius: 8px; color: #fff; cursor: pointer;"><i class="fa-solid fa-truck-ramp-box"></i> 🚚 ENTREGAR NO DESTINO (AO CLIENTE)</button>
-
-            <button id="btnDriverArrived" class="btn-warning hidden" style="padding: 8px 12px; font-size: 0.8rem;"><i class="fa-solid fa-bullseye"></i> Cheguei ao Local</button>
-            <button id="btnDriverStart" class="btn-primary hidden" style="padding: 8px 12px; font-size: 0.8rem;"><i class="fa-solid fa-play"></i> Iniciar Viagem</button>
-            <button id="btnDriverComplete" class="btn-success hidden" style="padding: 8px 12px; font-size: 0.8rem;"><i class="fa-solid fa-flag-checkered"></i> Finalizar Viagem</button>
-          </div>
-
-          <!-- Card de Endereço de Entrega que surge após Clicar em Coletar -->
-          <div class="delivery-address-card hidden" id="deliveryAddressCard" style="margin-top: 10px;">
-            <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; padding: 14px; border-radius: 12px; text-align: left;">
-              <span style="color: #10b981; font-weight: 800; font-size: 0.85rem; display: block; margin-bottom: 4px;">
-                <i class="fa-solid fa-map-pin"></i> ENDEREÇO ONDE DEVE FAZER A ENTREGA:
-              </span>
-              <h3 id="deliveryDestAddressText" style="color: #ffffff; font-size: 1.05rem; font-weight: 800; margin: 4px 0 10px 0; line-height: 1.3;">
-                Parque Ibirapuera - Portão 3
-              </h3>
-              <button id="btnOpenGPSDelivery" class="btn-primary" style="background: linear-gradient(135deg, #10b981, #047857); width: 100%; font-weight: 800; padding: 12px;" onclick="window.openDriverDeliveryGPS()"><i class="fa-solid fa-diamond-turn-right"></i> 🗺️ ABRIR GPS DIRETO DO DESTINO DE ENTREGA</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Modal Inbound Ride Request (Dispatch Alert) -->
-      <div class="modal-overlay hidden" id="modalRideDispatch">
-        <div class="modal-card dispatch-modal">
-          <div class="modal-header">
-            <span class="badge-alert"><i class="fa-solid fa-bell"></i> NOVA CORRIDA RECEBIDA</span>
-            <div class="timer-countdown" id="dispatchTimer">15s</div>
-          </div>
-          <div class="dispatch-details">
-            <h2 id="dispatchFare">R$ 22,40</h2>
-            <div class="dispatch-category-badge" id="dispatchCategory">🏍️ Moto Rápidas</div>
-            <div class="dispatch-proximity-badge" id="dispatchProximity"><i class="fa-solid fa-crosshairs"></i> 📍 Você é o motorista mais próximo (a 0.8 km do cliente)</div>
-            <p class="passenger-name"><i class="fa-solid fa-user"></i> <span id="dispatchPassenger">Fernanda Lima</span> (⭐ 4.9)</p>
-            <div class="route-preview">
-              <div><i class="fa-solid fa-circle origin-dot"></i> <span id="dispatchOrigin">MASP - Av. Paulista</span></div>
-              <div class="line"></div>
-              <div><i class="fa-solid fa-location-pin dest-dot"></i> <span id="dispatchDest">Parque Ibirapuera</span></div>
-            </div>
-            <div class="meta-pills">
-              <span><i class="fa-solid fa-road"></i> <span id="dispatchDistance">4.2 km</span></span>
-              <span><i class="fa-solid fa-clock"></i> <span id="dispatchTime">12 min</span></span>
-            </div>
-          </div>
-          <div class="modal-actions">
-            <button id="btnRejectRide" class="btn-secondary"><i class="fa-solid fa-xmark"></i> Recusar</button>
-            <button id="btnAcceptRide" class="btn-success-large pulse"><i class="fa-solid fa-check"></i> ACEITAR CORRIDA</button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ADMIN DASHBOARD SECTION -->
-    <section class="app-panel admin-panel" id="panelAdmin">
-      <div class="panel-header">
-        <h2><i class="fa-solid fa-chart-line"></i> Backoffice Administrativo</h2>
-        <span class="badge-admin"><i class="fa-solid fa-shield"></i> GESTOR DE FROTA</span>
-      </div>
-
-      <div class="admin-metrics-grid">
-        <div class="metric-card">
-          <div class="icon"><i class="fa-solid fa-car-side"></i></div>
-          <div class="data">
-            <span class="title">Motoristas Cadastrados</span>
-            <strong class="number" id="adminTotalDrivers">4</strong>
-          </div>
-        </div>
-        <div class="metric-card">
-          <div class="icon"><i class="fa-solid fa-route"></i></div>
-          <div class="data">
-            <span class="title">Corridas no Sistema</span>
-            <strong class="number" id="adminTotalRides">0</strong>
-          </div>
-        </div>
-        <div class="metric-card">
-          <div class="icon"><i class="fa-solid fa-road"></i></div>
-          <div class="data">
-            <span class="title">Total de Km Rodados</span>
-            <strong class="number" id="adminTotalKm">0.0 km</strong>
-          </div>
-        </div>
-        <div class="metric-card">
-          <div class="icon"><i class="fa-solid fa-sack-dollar"></i></div>
-          <div class="data">
-            <span class="title">Faturamento da Plataforma</span>
-            <strong class="number" id="adminPlatformRevenue">R$ 0,00</strong>
-          </div>
-        </div>
-      </div>
-
-      <div class="admin-body-layout">
-        <!-- Live Rides Table with Km -->
-        <div class="admin-box full-width-box">
-          <h3><i class="fa-solid fa-map-location-dot"></i> Monitoramento de Corridas em Tempo Real</h3>
-          <div class="table-responsive">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Passageiro / Modalidade</th>
-                  <th>Trajeto (Origem → Destino)</th>
-                  <th>Distância (Km) 🛣️</th>
-                  <th>Valor Total (R$)</th>
-                  <th>Comissão (%)</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody id="adminRidesTable">
-                <!-- Populated by JS -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Driver Verification Table -->
-        <div class="admin-box">
-          <h3><i class="fa-solid fa-id-card"></i> Gestão de Frota & Aprovação de Documentos</h3>
-          <div class="table-responsive">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Motorista</th>
-                  <th>Veículo / Placa</th>
-                  <th>Status</th>
-                  <th>Documentos</th>
-                  <th>Ação</th>
-                </tr>
-              </thead>
-              <tbody id="adminDriversTable">
-                <!-- Populated by JS -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Tariff Configurator Box -->
-        <div class="admin-box">
-          <h3><i class="fa-solid fa-sliders"></i> Configuração de Tarifas & Comissões</h3>
-          <form id="formTariffs" class="tariffs-form">
-            <div class="form-group">
-              <label>Tarifa Base (Bandeirada R$):</label>
-              <input type="number" step="0.5" id="cfgBasePrice" value="5.00">
-            </div>
-            <div class="form-group">
-              <label>Preço por Km (R$):</label>
-              <input type="number" step="0.1" id="cfgPriceKm" value="2.20">
-            </div>
-            <div class="form-group">
-              <label>Preço por Minuto (R$):</label>
-              <input type="number" step="0.05" id="cfgPriceMin" value="0.40">
-            </div>
-            <div class="form-group">
-              <label>Comissão da Plataforma (%):</label>
-              <input type="number" id="cfgFeePercent" value="20">
-            </div>
-            <div class="form-group">
-              <label>Tarifa Dinâmica (Surge Factor):</label>
-              <select id="cfgSurge">
-                <option value="1.0">1.0x (Normal)</option>
-                <option value="1.2">1.2x (Demanda Moderada)</option>
-                <option value="1.5">1.5x (Alta Demanda)</option>
-                <option value="2.0">2.0x (Pico de Chuva / Eventos)</option>
-              </select>
-            </div>
-        <!-- Promo Zones Box -->
-        <div class="admin-box">
-          <h3><i class="fa-solid fa-tags"></i> Mapear Zona Promocional / Desconto</h3>
-          <form id="formPromoZone" class="tariffs-form">
-            <div class="form-group">
-              <label>Nome da Promoção:</label>
-              <input type="text" id="promoName" placeholder="Ex: 🏷️ Promoção Fim de Semana" required>
-            </div>
-            <div class="form-group">
-              <label>Porcentagem de Desconto (%):</label>
-              <input type="number" id="promoDiscount" value="20" min="5" max="50" required>
-            </div>
-            <div class="form-group">
-              <label>Dias de Validade:</label>
-              <select id="promoDays">
-                <option value="Sexta a Domingo">🎉 Fim de Semana (Sexta a Domingo)</option>
-                <option value="Segunda a Quinta">💼 Dias Úteis (Segunda a Quinta)</option>
-                <option value="Todos os Dias">🌟 Todos os Dias (Semana Toda)</option>
-              </select>
-            </div>
-            <button type="submit" class="btn-success full-width">
-              <i class="fa-solid fa-map-location-dot"></i> Criar Zona Promocional no Mapa
-            </button>
-          </form>
-          <!-- Card de Gestão de Pagamentos em Dinheiro (Admin) -->
-          <div class="admin-box full-width-box" style="margin-top: 14px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-              <h3><i class="fa-solid fa-money-bill-wave" style="color: #10b981;"></i> 💵 Gestão e Baixas de Pagamentos em Dinheiro</h3>
-              <span class="badge-live" style="background: rgba(16, 185, 129, 0.15); color: #047857; font-size: 0.85rem; padding: 6px 14px;">Total Coletado: <strong id="adminTotalCashCollected" style="margin-left: 4px; font-size: 1rem;">R$ 0,00</strong></span>
-            </div>
-            <div class="table-responsive">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>ID / Data</th>
-                    <th>Motorista</th>
-                    <th>Cliente</th>
-                    <th>Valor Cobrado (R$)</th>
-                    <th>Taxa Plataforma (15%)</th>
-                    <th>Status da Baixa</th>
-                    <th>Ações Admin</th>
-                  </tr>
-                </thead>
-                <tbody id="adminCashTable">
-                  <tr>
-                    <td colspan="7" style="text-align: center; padding: 20px; color: #64748b;">
-                      Nenhum pagamento em dinheiro registrado ainda.
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- MODAL CADASTRO DE NOVO MOTORISTA / MOTO -->
-  <div class="modal-overlay hidden" id="modalRegisterDriver">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h3><i class="fa-solid fa-id-card"></i> Cadastrar Novo Motorista ou Moto</h3>
-        <button class="btn-close" onclick="document.getElementById('modalRegisterDriver').classList.add('hidden')">&times;</button>
-      </div>
-      <form id="formRegisterDriver" class="modal-form">
-        <div class="form-group">
-          <label>Nome Completo:</label>
-          <input type="text" id="regDriverName" placeholder="Ex: João da Silva" required>
-        </div>
-        <div class="form-group">
-          <label>Telefone / WhatsApp:</label>
-          <input type="text" id="regDriverPhone" placeholder="(11) 99999-9999" required>
-        </div>
-        <div class="form-group">
-          <label>Tipo de Veículo:</label>
-          <select id="regDriverType" required>
-            <option value="uberx">🚗 Carro Econômico (UberX)</option>
-            <option value="comfort">🚘 Carro Comfort (Espaçoso)</option>
-            <option value="moto">🏍️ Moto Passageiro</option>
-            <option value="delivery">📦 Moto / Bike Entrega Flash</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Modelo do Veículo:</label>
-          <input type="text" id="regDriverModel" placeholder="Ex: Honda CG 160 Fan / Toyota Yaris" required>
-        </div>
-        <div class="form-group">
-          <label>Cor do Veículo:</label>
-          <input type="text" id="regDriverColor" placeholder="Ex: Vermelho, Preto, Prata, Branco" required>
-        </div>
-        <div class="form-group">
-          <label>Placa do Veículo:</label>
-          <input type="text" id="regDriverPlate" placeholder="Ex: ABC-1D23" required>
-        </div>
-        <button type="submit" class="btn-success full-width">
-          <i class="fa-solid fa-check"></i> Cadastrar e Enviar para Aprovação
-        </button>
-      </form>
-    </div>
-  </div>
-
-  <!-- MODAL CADASTRO DE NOVO PASSAGEIRO -->
-  <div class="modal-overlay hidden" id="modalRegisterPassenger">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h3><i class="fa-solid fa-user-plus"></i> Cadastrar Novo Passageiro</h3>
-        <button class="btn-close" onclick="document.getElementById('modalRegisterPassenger').classList.add('hidden')">&times;</button>
-      </div>
-      <form id="formRegisterPassenger" class="modal-form">
-        <div class="form-group">
-          <label>Nome do Passageiro:</label>
-          <input type="text" id="regPassengerName" placeholder="Ex: Maria Santos" required>
-        </div>
-        <div class="form-group">
-          <label>Telefone:</label>
-          <input type="text" id="regPassengerPhone" placeholder="(11) 98888-7777" required>
-        </div>
-        <div class="form-group">
-          <label>Forma de Pagamento Preferida:</label>
-          <select id="regPassengerPay">
-            <option value="pix">⚡ PIX</option>
-            <option value="credit_card">💳 Cartão de Crédito</option>
-            <option value="cash">💵 Dinheiro</option>
-          </select>
-        </div>
-        <button type="submit" class="btn-primary full-width">
-          <i class="fa-solid fa-user-check"></i> Criar Perfil de Passageiro
-        </button>
-      </form>
-    </div>
-  </div>
-
-  <!-- MODAL DE COBRANÇA DE PAGAMENTO EM DINHEIRO (SURGE AO FINALIZAR CORRIDA EM DINHEIRO) -->
-  <div class="modal-overlay hidden" id="modalCashCollection">
-    <div class="modal-card" style="border: 3px solid #f59e0b; text-align: center; max-width: 440px; background: #ffffff;">
-      <div style="background: rgba(245, 158, 11, 0.15); padding: 14px; border-radius: 12px; margin-bottom: 14px;">
-        <span class="badge" style="background: #f59e0b; color: #fff; font-weight: 800; font-size: 0.85rem; padding: 6px 12px; border-radius: 20px;">
-          💵 PAGAMENTO EM DINHEIRO
-        </span>
-        <h2 style="color: #0f172a; margin-top: 10px; font-size: 1.15rem; font-weight: 800;">Receber Pagamento do Cliente</h2>
-      </div>
-
-      <div style="background: #f8fafc; padding: 18px; border-radius: 12px; border: 1px solid var(--border-color); text-align: center; margin-bottom: 16px;">
-        <small style="color: var(--text-muted); font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 4px;">
-          VALOR TOTAL A COBRAR DO CLIENTE:
-        </small>
-        <h1 id="cashAmountToCollectText" style="color: #10b981; font-size: 2.5rem; font-weight: 900; margin: 4px 0;">
-          R$ 0,00
-        </h1>
-        <p style="margin: 6px 0 0 0; color: #0f172a; font-size: 0.9rem; font-weight: 700;" id="cashPassengerInfoText">
-          Cliente: Fernanda Lima
-        </p>
-        <small style="color: #475569; display: block; margin-top: 8px;">
-          <i>O cliente escolheu pagar em dinheiro diretamente a você. Receba a quantia acima antes de dar baixa no sistema.</i>
-        </small>
-      </div>
-
-      <div style="display: flex; flex-direction: column; gap: 10px;">
-        <button class="btn-success" style="padding: 14px; font-size: 1rem; font-weight: 800; border: none; border-radius: 10px; cursor: pointer; color: #fff;" onclick="window.confirmCashReceived()">
-          <i class="fa-solid fa-circle-check"></i> ✅ CONFIRMAR RECEBIMENTO (DAR BAIXA EM DINHEIRO)
-        </button>
-        <button class="btn-secondary" style="padding: 10px; font-size: 0.85rem; color: #ef4444;" onclick="window.reportCashNotPaid()">
-          ⚠️ Cliente não pagou / Relatar ao Admin
-        </button>
       </div>
     </div>
-  </div>
+  </section>
 
-  <!-- JS External Libraries & Application Scripts -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-  <script src="app.js"></script>
+  <!-- Rodapé Profissional -->
+  <footer style="text-align: center; padding: 24px; color: #64748b; font-size: 0.85rem; font-weight: 600;">
+    UBERFLOW Enterprise Engine v3.0 &bull; Plataforma Profissional On-Demand &bull; Todos os direitos reservados.
+  </footer>
 
 </body>
 </html>
