@@ -1423,10 +1423,32 @@ function addChatMessage(msg) {
   box.scrollTop = box.scrollHeight;
 }
 
+function getDeletedDriverIds() {
+  try {
+    const raw = localStorage.getItem('uberflow_deleted_drivers');
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function markDriverDeleted(driverId) {
+  try {
+    const deleted = getDeletedDriverIds();
+    const cleanId = String(driverId);
+    if (!deleted.includes(cleanId)) {
+      deleted.push(cleanId);
+      localStorage.setItem('uberflow_deleted_drivers', JSON.stringify(deleted));
+    }
+  } catch (e) {}
+}
+
 function getPersistedDrivers() {
   try {
     const raw = localStorage.getItem('uberflow_drivers');
-    return raw ? JSON.parse(raw) : [];
+    const all = raw ? JSON.parse(raw) : [];
+    const deleted = getDeletedDriverIds();
+    return all.filter(d => !deleted.includes(String(d.id)));
   } catch (e) {
     return [];
   }
@@ -1435,7 +1457,7 @@ function getPersistedDrivers() {
 function savePersistedDriver(driverObj) {
   try {
     const current = getPersistedDrivers();
-    if (!current.find(d => d.id === driverObj.id)) {
+    if (!current.find(d => String(d.id) === String(driverObj.id))) {
       current.push(driverObj);
       localStorage.setItem('uberflow_drivers', JSON.stringify(current));
     }
@@ -1445,7 +1467,7 @@ function savePersistedDriver(driverObj) {
 function updatePersistedDriverStatus(driverId, verified) {
   try {
     const current = getPersistedDrivers();
-    const target = current.find(d => d.id === driverId);
+    const target = current.find(d => String(d.id) === String(driverId));
     if (target) {
       target.verified = verified;
       localStorage.setItem('uberflow_drivers', JSON.stringify(current));
@@ -1455,7 +1477,7 @@ function updatePersistedDriverStatus(driverId, verified) {
 
 window.toggleVerifyDriver = async function(driverId, verified) {
   if (state.localDrivers) {
-    const localD = state.localDrivers.find(d => d.id === driverId);
+    const localD = state.localDrivers.find(d => String(d.id) === String(driverId));
     if (localD) localD.verified = verified;
   }
   updatePersistedDriverStatus(driverId, verified);
@@ -1477,24 +1499,37 @@ window.toggleVerifyDriver = async function(driverId, verified) {
 };
 
 window.deleteDriver = async function(driverId) {
-  if (!confirm('Tem certeza que deseja EXCLUIR este motorista do sistema?')) return;
+  const cleanId = String(driverId);
 
+  // 1. Gravar ID na lista negra de excluídos do localStorage
+  markDriverDeleted(cleanId);
+
+  // 2. Remover da memória local
   if (state.localDrivers) {
-    state.localDrivers = state.localDrivers.filter(d => d.id !== driverId);
+    state.localDrivers = state.localDrivers.filter(d => String(d.id) !== cleanId);
   }
+
+  // 3. Remover de uberflow_drivers
   try {
-    const current = getPersistedDrivers().filter(d => d.id !== driverId);
+    const current = getPersistedDrivers().filter(d => String(d.id) !== cleanId);
     localStorage.setItem('uberflow_drivers', JSON.stringify(current));
   } catch (e) {}
 
-  try {
-    await fetch(`${BACKEND_URL}/api/drivers/${driverId}`, { method: 'DELETE' });
-    showToast('🗑️ Motorista excluído do sistema com sucesso!', 'info');
-  } catch (err) {
-    showToast('🗑️ Motorista excluído localmente.', 'info');
+  // 4. Resetar seleção de motorista atual se era o excluído
+  if (String(state.currentDriverId) === cleanId) {
+    state.currentDriverId = null;
   }
 
-  loadAdminDrivers();
+  // 5. Chamada de exclusão no backend servidor
+  try {
+    await fetch(`${BACKEND_URL}/api/drivers/${cleanId}`, { method: 'DELETE' });
+    await fetch(`${BACKEND_URL}/api/drivers/${cleanId}/delete`, { method: 'POST' });
+  } catch (err) {}
+
+  showToast('🗑️ Motorista excluído do sistema com sucesso!', 'success');
+
+  // 6. Forçar recarregamento visual imediato
+  await loadAdminDrivers();
   renderOnlineFleetOnPassengerMap();
 };
 
@@ -1614,11 +1649,14 @@ async function loadAdminDrivers() {
 
     if (!Array.isArray(drivers)) drivers = [];
 
+    const deletedIds = getDeletedDriverIds();
+    drivers = drivers.filter(d => !deletedIds.includes(String(d.id)));
+
     const persisted = getPersistedDrivers();
     persisted.forEach(pd => {
-      const existing = drivers.find(d => d.id === pd.id);
+      const existing = drivers.find(d => String(d.id) === String(pd.id));
       if (!existing) {
-        drivers.push(pd);
+        if (!deletedIds.includes(String(pd.id))) drivers.push(pd);
       } else {
         if (pd.verified !== undefined) existing.verified = pd.verified;
         if (pd.blocked !== undefined) existing.blocked = pd.blocked;
@@ -1627,11 +1665,13 @@ async function loadAdminDrivers() {
 
     if (state.localDrivers && state.localDrivers.length > 0) {
       state.localDrivers.forEach(ld => {
-        if (!drivers.find(d => d.id === ld.id)) {
-          drivers.push(ld);
+        if (!drivers.find(d => String(d.id) === String(ld.id))) {
+          if (!deletedIds.includes(String(ld.id))) drivers.push(ld);
         }
       });
     }
+
+    drivers = drivers.filter(d => !deletedIds.includes(String(d.id)));
 
     const tbody = document.getElementById('adminDriversTable');
     const selectActive = document.getElementById('selectActiveDriver');
