@@ -1153,11 +1153,125 @@ window.openDriverGPSNavigation = function() {
     }
   }, 150);
 
-  // 2. Abrir o mapa de navegação GPS externo em nova aba (Google Maps Direcional)
+  document.getElementById('btnDriverCollect').addEventListener('click', () => {
+    if (!state.currentRide) return;
+    updateRideStatus('IN_PROGRESS');
+
+    const dest = (state.currentRide && state.currentRide.destination && state.currentRide.destination.lat) ? state.currentRide.destination : LOCATIONS.IBIRAPUERA;
+    const destName = dest.name || 'Endereço de Entrega do Cliente';
+    const passengerName = state.currentRide.passengerName || 'Cliente';
+
+    // 1. Ocultar botão Coletar e Exibir botão Entregar + Card de Endereço
+    const btnCollect = document.getElementById('btnDriverCollect');
+    const btnDeliver = document.getElementById('btnDriverDeliver');
+    const cardDelivery = document.getElementById('deliveryAddressCard');
+    const destText = document.getElementById('deliveryDestAddressText');
+
+    if (btnCollect) btnCollect.classList.add('hidden');
+    if (btnDeliver) btnDeliver.classList.remove('hidden');
+    if (cardDelivery) cardDelivery.classList.remove('hidden');
+    if (destText) destText.innerText = destName;
+
+    // 2. EXIBIR AUTOMATICAMENTE O MODAL EM DESTAQUE COM O ENDEREÇO DE ENTREGA
+    const modalDelivery = document.getElementById('modalDeliveryAddress');
+    const modalDestText = document.getElementById('modalDeliveryDestText');
+    const modalPassengerText = document.getElementById('modalDeliveryPassengerText');
+
+    if (modalDestText) modalDestText.innerText = destName;
+    if (modalPassengerText) modalPassengerText.innerText = `Cliente: ${passengerName}`;
+    if (modalDelivery) modalDelivery.classList.remove('hidden');
+
+    // 3. ABRIR E VOAR O MAPA DIRETO PARA O ENDEREÇO DA ENTREGA DO CLIENTE (DESTINO)
+    const tabDriver = document.querySelector('.tab-btn[data-mode="driver"]');
+    if (tabDriver) tabDriver.click();
+
+    setTimeout(() => {
+      if (state.driverMap) {
+        state.driverMap.invalidateSize();
+        state.driverMap.flyTo([dest.lat, dest.lng], 17, { animate: true, duration: 1.2 });
+
+        L.marker([dest.lat, dest.lng], { icon: createPinIcon('dest') })
+          .addTo(state.driverMap)
+          .bindPopup(`
+            <div style="font-family: sans-serif; text-align: center; padding: 6px;">
+              <strong style="color: #10b981;">🚚 Ponto de Entrega do Cliente</strong><br>
+              <b>${passengerName}</b><br>
+              <span style="color: #38bdf8; font-weight: bold;">${destName}</span>
+            </div>
+          `)
+          .openPopup();
+      }
+    }, 150);
+
+    showToast(`📦 Encomenda Coletada! Endereço de entrega aberto: ${destName}`, 'success');
+  });
+
+window.confirmStartDeliveryNavigation = function() {
+  const modalDelivery = document.getElementById('modalDeliveryAddress');
+  if (modalDelivery) modalDelivery.classList.add('hidden');
+  window.openDriverDeliveryGPS();
+};
+
+  document.getElementById('btnDriverDeliver').addEventListener('click', () => {
+    if (!state.currentRide) return;
+    updateRideStatus('COMPLETED');
+
+    const btnDeliver = document.getElementById('btnDriverDeliver');
+    const cardDelivery = document.getElementById('deliveryAddressCard');
+    const actionsBox = document.getElementById('driverActions');
+
+    if (btnDeliver) btnDeliver.classList.add('hidden');
+    if (cardDelivery) cardDelivery.classList.add('hidden');
+    if (actionsBox) actionsBox.classList.add('hidden');
+
+    if (state.simulationInterval) clearInterval(state.simulationInterval);
+    showToast('🏁 Entrega realizada com sucesso no endereço do cliente! Valor creditado.', 'success');
+  });
+
+  document.getElementById('btnRejectRide').addEventListener('click', () => {
+    stopSirenSound(); // Parar sirene instantaneamente ao clicar em Recusar
+    clearInterval(state.dispatchTimerInterval);
+    document.getElementById('modalRideDispatch').classList.add('hidden');
+    state.pendingDispatchRide = null;
+    showToast('Chamada recusada.', 'info');
+  });
+
+  document.getElementById('btnDriverArrived').addEventListener('click', () => {
+    updateRideStatus('ARRIVED_PICKUP');
+    showToast('📍 Você chegou ao local de embarque!', 'info');
+  });
+  document.getElementById('btnDriverStart').addEventListener('click', () => {
+    updateRideStatus('IN_PROGRESS');
+    showToast('🚗 Viagem iniciada! Indo ao destino...', 'success');
+  });
+  document.getElementById('btnDriverComplete').addEventListener('click', () => {
+    updateRideStatus('COMPLETED');
+    if (state.simulationInterval) clearInterval(state.simulationInterval);
+    showToast('🏁 Viagem concluída com sucesso! Valor creditado.', 'success');
+  });
+
+  document.getElementById('btnSendChat').addEventListener('click', sendChatMessage);
+  document.getElementById('inputChatMsg').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') sendChatMessage();
+  });
+}
+
+window.openDriverDeliveryGPS = function() {
+  if (!state.currentRide) {
+    showToast('Nenhuma corrida ou entrega ativa no momento.', 'warning');
+    return;
+  }
+
+  const ride = state.currentRide;
+  const dest = (ride.destination && ride.destination.lat) ? ride.destination : LOCATIONS.IBIRAPUERA;
+  const lat = dest.lat;
+  const lng = dest.lng;
+  const addressName = dest.name || 'Endereço de Entrega do Cliente';
+
   const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&destination_place_id=${encodeURIComponent(addressName)}`;
   window.open(googleMapsUrl, '_blank');
 
-  showToast(`🗺️ Navegação GPS iniciada para: ${addressName}`, 'success');
+  showToast(`🗺️ GPS externo aberto direcionado para o local de entrega: ${addressName}`, 'success');
 };
 
 function updateDriverUI(ride) {
@@ -1169,25 +1283,34 @@ function updateDriverUI(ride) {
   const subElem = document.getElementById('driverCurrentRideSub');
   if (subElem) {
     const originName = ride.origin?.name || 'Local de Partida';
-    subElem.innerHTML = `<i class="fa-solid fa-user"></i> Cliente: <strong>${ride.passengerName || 'Passageiro'}</strong><br><i class="fa-solid fa-location-dot" style="color: #10b981;"></i> <span>${originName}</span>`;
+    const destName = ride.destination?.name || 'Endereço de Entrega';
+    subElem.innerHTML = `<i class="fa-solid fa-user"></i> Cliente: <strong>${ride.passengerName || 'Passageiro'}</strong><br><i class="fa-solid fa-circle-dot" style="color: #f59e0b;"></i> Coleta: <span>${originName}</span><br><i class="fa-solid fa-location-dot" style="color: #10b981;"></i> Entrega: <span>${destName}</span>`;
   }
+
+  const btnCollect = document.getElementById('btnDriverCollect');
+  const btnDeliver = document.getElementById('btnDriverDeliver');
+  const cardDelivery = document.getElementById('deliveryAddressCard');
+  const destText = document.getElementById('deliveryDestAddressText');
 
   const btnArrived = document.getElementById('btnDriverArrived');
   const btnStart = document.getElementById('btnDriverStart');
   const btnComplete = document.getElementById('btnDriverComplete');
 
   if (ride.status === 'ACCEPTED') {
-    btnArrived.classList.remove('hidden');
-    btnStart.classList.add('hidden');
-    btnComplete.classList.add('hidden');
-  } else if (ride.status === 'ARRIVED_PICKUP') {
-    btnArrived.classList.add('hidden');
-    btnStart.classList.remove('hidden');
-    btnComplete.classList.add('hidden');
-  } else if (ride.status === 'IN_PROGRESS') {
+    if (btnCollect) btnCollect.classList.remove('hidden');
+    if (btnDeliver) btnDeliver.classList.add('hidden');
+    if (cardDelivery) cardDelivery.classList.add('hidden');
     btnArrived.classList.add('hidden');
     btnStart.classList.add('hidden');
-    btnComplete.classList.remove('hidden');
+    btnComplete.classList.add('hidden');
+  } else if (ride.status === 'IN_PROGRESS' || ride.status === 'COLLECTED') {
+    if (btnCollect) btnCollect.classList.add('hidden');
+    if (btnDeliver) btnDeliver.classList.remove('hidden');
+    if (cardDelivery) cardDelivery.classList.remove('hidden');
+    if (destText) destText.innerText = ride.destination?.name || 'Endereço de Entrega do Cliente';
+    btnArrived.classList.add('hidden');
+    btnStart.classList.add('hidden');
+    btnComplete.classList.add('hidden');
   } else if (ride.status === 'COMPLETED') {
     actionsBox.classList.add('hidden');
   }

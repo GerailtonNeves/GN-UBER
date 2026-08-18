@@ -220,14 +220,33 @@
         </div>
 
         <div class="driver-active-actions hidden" id="driverActions">
-          <h4 id="driverCurrentRideTitle">Corrida em Andamento</h4>
-          <p id="driverCurrentRideSub">Passageiro: Fernanda Lima</p>
+          <h4 id="driverCurrentRideTitle">Corrida ou Entrega em Andamento</h4>
+          <p id="driverCurrentRideSub">Passageiro / Cliente: Fernanda Lima</p>
 
           <div class="action-buttons-group">
             <button id="btnOpenGPS" class="btn-primary" style="background: linear-gradient(135deg, #0284c7, #0369a1); width: 100%; margin-bottom: 8px; font-weight: 800; padding: 12px;" onclick="window.openDriverGPSNavigation()"><i class="fa-solid fa-location-arrow"></i> 🗺️ ABRIR NAVEGAÇÃO GPS DO CLIENTE</button>
-            <button id="btnDriverArrived" class="btn-warning"><i class="fa-solid fa-bullseye"></i> Cheguei ao Local</button>
+            
+            <!-- Botões Especiais de Coleta & Entrega -->
+            <button id="btnDriverCollect" class="btn-warning" style="background: linear-gradient(135deg, #f59e0b, #d97706); width: 100%; margin-bottom: 8px; font-weight: 800; padding: 14px; font-size: 0.95rem; border: none; border-radius: 10px; color: #fff; cursor: pointer;"><i class="fa-solid fa-box"></i> 📦 COLETAR ENCOMENDA (NA ORIGEM)</button>
+            
+            <button id="btnDriverDeliver" class="btn-success hidden" style="background: linear-gradient(135deg, #10b981, #059669); width: 100%; margin-bottom: 8px; font-weight: 800; padding: 14px; font-size: 0.95rem; border: none; border-radius: 10px; color: #fff; cursor: pointer;"><i class="fa-solid fa-truck-ramp-box"></i> 🚚 ENTREGAR NO DESTINO (AO CLIENTE)</button>
+
+            <button id="btnDriverArrived" class="btn-warning hidden"><i class="fa-solid fa-bullseye"></i> Cheguei ao Local</button>
             <button id="btnDriverStart" class="btn-primary hidden"><i class="fa-solid fa-play"></i> Iniciar Viagem</button>
             <button id="btnDriverComplete" class="btn-success hidden"><i class="fa-solid fa-flag-checkered"></i> Finalizar Viagem</button>
+          </div>
+
+          <!-- Card de Endereço de Entrega que surge após Clicar em Coletar -->
+          <div class="delivery-address-card hidden" id="deliveryAddressCard" style="margin-top: 10px;">
+            <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; padding: 14px; border-radius: 12px; text-align: left;">
+              <span style="color: #10b981; font-weight: 800; font-size: 0.85rem; display: block; margin-bottom: 4px;">
+                <i class="fa-solid fa-map-pin"></i> ENDEREÇO ONDE DEVE FAZER A ENTREGA:
+              </span>
+              <h3 id="deliveryDestAddressText" style="color: #ffffff; font-size: 1.05rem; font-weight: 800; margin: 4px 0 10px 0; line-height: 1.3;">
+                Parque Ibirapuera - Portão 3
+              </h3>
+              <button id="btnOpenGPSDelivery" class="btn-primary" style="background: linear-gradient(135deg, #10b981, #047857); width: 100%; font-weight: 800; padding: 12px;" onclick="window.openDriverDeliveryGPS()"><i class="fa-solid fa-diamond-turn-right"></i> 🗺️ ABRIR GPS DIRETO DO DESTINO DE ENTREGA</button>
+            </div>
           </div>
         </div>
       </div>
@@ -478,6 +497,39 @@
           <i class="fa-solid fa-user-check"></i> Criar Perfil de Passageiro
         </button>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL AUTOMÁTICO DE ENDEREÇO DE ENTREGA (SURGE AO CLICAR EM COLETAR) -->
+  <div class="modal-overlay hidden" id="modalDeliveryAddress">
+    <div class="modal-card" style="border: 2px solid #10b981; text-align: center; max-width: 440px;">
+      <div style="background: rgba(16, 185, 129, 0.15); padding: 12px; border-radius: 12px; margin-bottom: 14px;">
+        <span class="badge" style="background: #10b981; color: #fff; font-weight: 800; font-size: 0.85rem; padding: 6px 12px; border-radius: 20px;">
+          📦 ENCOMENDA COLETADA COM SUCESSO!
+        </span>
+        <h2 style="color: #fff; margin-top: 10px; font-size: 1.15rem;">Siga para o Endereço de Entrega do Cliente:</h2>
+      </div>
+
+      <div style="background: var(--bg-dark); padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); text-align: left; margin-bottom: 16px;">
+        <small style="color: #10b981; font-weight: 800; text-transform: uppercase; display: block; margin-bottom: 4px;">
+          <i class="fa-solid fa-truck-ramp-box"></i> LOCAL EXATO DA ENTREGA:
+        </small>
+        <h3 id="modalDeliveryDestText" style="color: #38bdf8; font-size: 1.15rem; font-weight: 800; margin: 0; line-height: 1.3;">
+          Parque Ibirapuera - Portão 3
+        </h3>
+        <p style="margin: 6px 0 0 0; color: var(--text-muted); font-size: 0.85rem;" id="modalDeliveryPassengerText">
+          Cliente: Fernanda Lima
+        </p>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <button class="btn-primary" style="background: linear-gradient(135deg, #10b981, #047857); padding: 14px; font-size: 1rem; font-weight: 800; border: none; border-radius: 10px; cursor: pointer; color: #fff;" onclick="window.confirmStartDeliveryNavigation()">
+          <i class="fa-solid fa-diamond-turn-right"></i> 🗺️ ABRIR NAVEGAÇÃO / MAPA DA ENTREGA
+        </button>
+        <button class="btn-secondary" style="padding: 10px; font-size: 0.85rem;" onclick="document.getElementById('modalDeliveryAddress').classList.add('hidden')">
+          Fechar Aviso
+        </button>
+      </div>
     </div>
   </div>
 
