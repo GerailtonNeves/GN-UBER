@@ -3,19 +3,19 @@
    ==================================================== */
 
 :root {
-  --bg-dark: #0b1329;
-  --bg-card: #15203b;
-  --bg-card-hover: #1e2c4f;
-  --primary: #3b82f6;
-  --primary-hover: #2563eb;
-  --primary-glow: rgba(59, 130, 246, 0.4);
+  --bg-dark: #080d1a;
+  --bg-card: #111b33;
+  --bg-card-hover: #1a2747;
+  --primary: #f95700;
+  --primary-hover: #ea580c;
+  --primary-glow: rgba(249, 87, 0, 0.45);
   --success: #10b981;
   --success-hover: #059669;
   --warning: #f59e0b;
   --danger: #ef4444;
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
-  --border-color: #243456;
+  --border-color: #213254;
   --shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.6);
   --font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
 }

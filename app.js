@@ -853,15 +853,15 @@ function initEventHandlers() {
       name: nameVal || 'Motorista Cadastrado',
       phone: phoneVal || '(11) 99999-9999',
       rating: 5.0,
-      status: 'offline',
-      verified: false,
+      status: 'online',
+      verified: true,
       vehicle: {
         model: modelVal || 'Veículo Cadastrado',
         color: colorVal || 'Preto',
         plate: plateVal || 'ABC-1234',
         type: typeVal || 'uberx'
       },
-      location: { lat: -23.561684, lng: -46.655981, heading: 0 },
+      location: { lat: -23.561684 + (Math.random() - 0.5) * 0.01, lng: -46.655981 + (Math.random() - 0.5) * 0.01, heading: 0 },
       totalEarnings: 0,
       completedRides: 0
     };
@@ -891,12 +891,14 @@ function initEventHandlers() {
     if (!state.localDrivers) state.localDrivers = [];
     state.localDrivers.push(newDriverObj);
     savePersistedDriver(newDriverObj);
+    state.currentDriverId = newDriverObj.id;
 
     document.getElementById('modalRegisterDriver').classList.add('hidden');
     document.getElementById('formRegisterDriver').reset();
 
-    showToast(`🎉 Motorista "${newDriverObj.name}" (${newDriverObj.vehicle.model}) cadastrado com sucesso! Acesse o Painel Admin para APROVAR.`, 'success');
+    showToast(`🎉 Motorista "${newDriverObj.name}" (${newDriverObj.vehicle.model}) CADASTRADO E APROVADO COM SUCESSO!`, 'success');
     await loadAdminDrivers();
+    renderOnlineFleetOnPassengerMap();
   });
 
   // Handler de Mapear Zona Promocional / Desconto (Admin)
@@ -1280,11 +1282,25 @@ function updateDriverUI(ride) {
   const actionsBox = document.getElementById('driverActions');
   actionsBox.classList.remove('hidden');
 
+  const passengerNameElem = document.getElementById('driverPassengerNameText');
+  const passengerPhoneElem = document.getElementById('driverPassengerPhoneText');
+  const btnCallElem = document.getElementById('btnCallPassenger');
+
+  const pName = ride.passengerName || 'Fernanda Lima';
+  const pPhone = ride.passengerPhone || '(11) 99876-5432';
+  const pPhoneClean = pPhone.replace(/\D/g, '');
+
+  if (passengerNameElem) passengerNameElem.innerText = pName;
+  if (passengerPhoneElem) passengerPhoneElem.innerText = `📞 ${pPhone}`;
+  if (btnCallElem) {
+    btnCallElem.href = pPhoneClean ? `https://wa.me/55${pPhoneClean}` : `tel:${pPhone}`;
+  }
+
   const subElem = document.getElementById('driverCurrentRideSub');
   if (subElem) {
     const originName = ride.origin?.name || 'Local de Partida';
     const destName = ride.destination?.name || 'Endereço de Entrega';
-    subElem.innerHTML = `<i class="fa-solid fa-user"></i> Cliente: <strong>${ride.passengerName || 'Passageiro'}</strong><br><i class="fa-solid fa-circle-dot" style="color: #f59e0b;"></i> Coleta: <span>${originName}</span><br><i class="fa-solid fa-location-dot" style="color: #10b981;"></i> Entrega: <span>${destName}</span>`;
+    subElem.innerHTML = `<i class="fa-solid fa-circle-dot" style="color: #f59e0b;"></i> Coleta: <strong>${originName}</strong><br><i class="fa-solid fa-location-dot" style="color: #10b981;"></i> Entrega: <strong>${destName}</strong>`;
   }
 
   const btnCollect = document.getElementById('btnDriverCollect');

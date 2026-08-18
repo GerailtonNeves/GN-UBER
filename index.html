@@ -221,19 +221,32 @@
 
         <div class="driver-active-actions hidden" id="driverActions">
           <h4 id="driverCurrentRideTitle">Corrida ou Entrega em Andamento</h4>
-          <p id="driverCurrentRideSub">Passageiro / Cliente: Fernanda Lima</p>
+          
+          <!-- Bloco de Contato do Cliente com Nome, Telefone e Botão Ligar -->
+          <div style="background: rgba(249, 87, 0, 0.12); border: 1px solid var(--primary); padding: 10px 14px; border-radius: 12px; margin: 10px 0; display: flex; align-items: center; justify-content: space-between;">
+            <div>
+              <span style="color: var(--text-muted); font-size: 0.75rem; display: block;">Cliente / Passageiro:</span>
+              <strong id="driverPassengerNameText" style="color: #ffffff; font-size: 0.95rem;">Fernanda Lima</strong><br>
+              <small id="driverPassengerPhoneText" style="color: var(--primary); font-weight: 800;">📞 (11) 99876-5432</small>
+            </div>
+            <a id="btnCallPassenger" href="https://wa.me/5511998765432" target="_blank" class="btn-success" style="padding: 8px 12px; font-size: 0.75rem; font-weight: 800; text-decoration: none; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-phone"></i> Ligar / Zap
+            </a>
+          </div>
+
+          <p id="driverCurrentRideSub" style="font-size: 0.8rem; margin-bottom: 10px;"></p>
 
           <div class="action-buttons-group">
-            <button id="btnOpenGPS" class="btn-primary" style="background: linear-gradient(135deg, #0284c7, #0369a1); width: 100%; margin-bottom: 8px; font-weight: 800; padding: 12px;" onclick="window.openDriverGPSNavigation()"><i class="fa-solid fa-location-arrow"></i> 🗺️ ABRIR NAVEGAÇÃO GPS DO CLIENTE</button>
+            <button id="btnOpenGPS" class="btn-primary" style="background: linear-gradient(135deg, #0284c7, #0369a1); width: 100%; margin-bottom: 6px; font-weight: 800; padding: 10px; font-size: 0.82rem;" onclick="window.openDriverGPSNavigation()"><i class="fa-solid fa-location-arrow"></i> 🗺️ ABRIR NAVEGAÇÃO GPS DO CLIENTE</button>
             
-            <!-- Botões Especiais de Coleta & Entrega -->
-            <button id="btnDriverCollect" class="btn-warning" style="background: linear-gradient(135deg, #f59e0b, #d97706); width: 100%; margin-bottom: 8px; font-weight: 800; padding: 14px; font-size: 0.95rem; border: none; border-radius: 10px; color: #fff; cursor: pointer;"><i class="fa-solid fa-box"></i> 📦 COLETAR ENCOMENDA (NA ORIGEM)</button>
+            <!-- Botões Especiais de Coleta & Entrega (Compactos e Elegantes) -->
+            <button id="btnDriverCollect" class="btn-warning" style="background: linear-gradient(135deg, #f59e0b, #d97706); width: 100%; margin-bottom: 6px; font-weight: 800; padding: 10px 14px; font-size: 0.82rem; border: none; border-radius: 8px; color: #fff; cursor: pointer;"><i class="fa-solid fa-box"></i> 📦 COLETAR ENCOMENDA (NA ORIGEM)</button>
             
-            <button id="btnDriverDeliver" class="btn-success hidden" style="background: linear-gradient(135deg, #10b981, #059669); width: 100%; margin-bottom: 8px; font-weight: 800; padding: 14px; font-size: 0.95rem; border: none; border-radius: 10px; color: #fff; cursor: pointer;"><i class="fa-solid fa-truck-ramp-box"></i> 🚚 ENTREGAR NO DESTINO (AO CLIENTE)</button>
+            <button id="btnDriverDeliver" class="btn-success hidden" style="background: linear-gradient(135deg, #10b981, #059669); width: 100%; margin-bottom: 6px; font-weight: 800; padding: 10px 14px; font-size: 0.82rem; border: none; border-radius: 8px; color: #fff; cursor: pointer;"><i class="fa-solid fa-truck-ramp-box"></i> 🚚 ENTREGAR NO DESTINO (AO CLIENTE)</button>
 
-            <button id="btnDriverArrived" class="btn-warning hidden"><i class="fa-solid fa-bullseye"></i> Cheguei ao Local</button>
-            <button id="btnDriverStart" class="btn-primary hidden"><i class="fa-solid fa-play"></i> Iniciar Viagem</button>
-            <button id="btnDriverComplete" class="btn-success hidden"><i class="fa-solid fa-flag-checkered"></i> Finalizar Viagem</button>
+            <button id="btnDriverArrived" class="btn-warning hidden" style="padding: 8px 12px; font-size: 0.8rem;"><i class="fa-solid fa-bullseye"></i> Cheguei ao Local</button>
+            <button id="btnDriverStart" class="btn-primary hidden" style="padding: 8px 12px; font-size: 0.8rem;"><i class="fa-solid fa-play"></i> Iniciar Viagem</button>
+            <button id="btnDriverComplete" class="btn-success hidden" style="padding: 8px 12px; font-size: 0.8rem;"><i class="fa-solid fa-flag-checkered"></i> Finalizar Viagem</button>
           </div>
 
           <!-- Card de Endereço de Entrega que surge após Clicar em Coletar -->
