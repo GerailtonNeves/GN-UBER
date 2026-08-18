@@ -3,13 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>UberFlow - Portal Oficial do Sistema On-Demand</title>
+  <title>99 Super-App Brasil - Portal Oficial</title>
   
-  <!-- App Icons & Favicon -->
   <link rel="icon" type="image/jpeg" href="assets/icon_passageiro.jpg" />
   <link rel="apple-touch-icon" href="assets/icon_passageiro.jpg" />
 
-  <!-- CSS External Libraries -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -17,114 +15,87 @@
 </head>
 <body>
 
-  <!-- Toast Notification Container -->
   <div id="toastContainer" class="toast-container"></div>
 
   <!-- Header Superior Oficial -->
   <header class="app-header">
     <div class="logo">
-      <div class="logo-icon-wrap" style="background: linear-gradient(135deg, #0284c7, #0369a1);"><i class="fa-solid fa-car-side logo-icon"></i></div>
+      <div class="logo-icon-wrap"><i class="fa-solid fa-car-side logo-icon"></i></div>
       <div class="logo-text">
-        <span>UBER<strong>FLOW</strong></span>
-        <small class="version" style="color: #0284c7;">🚀 PLATAFORMA OFICIAL v3.0</small>
+        <span>99<strong>SUPER-APP</strong></span>
+        <small class="version">🟡 PLATAFORMA OFICIAL 99 BRASIL v3.0</small>
       </div>
-      <span class="badge-live"><i class="fa-solid fa-circle blink"></i> SISTEMA OPERACIONAL & ONLINE</span>
+      <span class="badge-live"><i class="fa-solid fa-circle blink"></i> 99 MOVER O BRASIL & ONLINE</span>
     </div>
 
-    <!-- Navegação de Atalhos -->
     <nav class="mode-tabs">
-      <a href="cliente.html" class="tab-btn"><i class="fa-solid fa-mobile-screen"></i> App Cliente</a>
-      <a href="motorista.html" class="tab-btn"><i class="fa-solid fa-taxi"></i> App Motorista</a>
-      <a href="admin.html" class="tab-btn"><i class="fa-solid fa-gears"></i> Painel Admin</a>
+      <a href="cliente.html" class="tab-btn"><i class="fa-solid fa-mobile-screen" style="color: #ff9e00;"></i> App Cliente 99</a>
+      <a href="motorista.html" class="tab-btn"><i class="fa-solid fa-taxi" style="color: #ff9e00;"></i> App Motorista 99</a>
+      <a href="admin.html" class="tab-btn"><i class="fa-solid fa-gears" style="color: #ff9e00;"></i> Painel Admin 99</a>
     </nav>
   </header>
 
   <!-- Banner Hero Principal -->
   <section style="padding: 32px 24px 20px 24px; text-align: center; max-width: 1200px; margin: 0 auto;">
-    <div style="background: #ffffff; border: 2px solid var(--border-color); border-radius: 20px; padding: 32px 20px; box-shadow: var(--shadow);">
-      <span style="background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; font-weight: 800; font-size: 0.85rem; padding: 6px 16px; border-radius: 20px; display: inline-flex; align-items: center; gap: 6px; margin-bottom: 14px;">
-        ⚡ PLATAFORMA PROFISSIONAL DE TRANSPORTE & ENTREGAS
+    <div style="background: #ffffff; border: 2px solid #fde68a; border-radius: 20px; padding: 32px 20px; box-shadow: 0 12px 30px rgba(255, 158, 0, 0.18);">
+      <span style="background: #fffbeb; color: #d97706; border: 1px solid #fde68a; font-weight: 800; font-size: 0.85rem; padding: 6px 16px; border-radius: 20px; display: inline-flex; align-items: center; gap: 6px; margin-bottom: 14px;">
+        🟡 PLATAFORMA OFICIAL 99 POP, 99 MOTO & 99 ENTREGA
       </span>
-      <h1 style="color: #0f172a; font-size: 2.2rem; font-weight: 800; margin-bottom: 10px;">
-        Bem-vindo ao Sistema UberFlow Engine
+      <h1 style="color: #111827; font-size: 2.2rem; font-weight: 800; margin-bottom: 10px;">
+        Bem-vindo ao 99 Super-App Brasil
       </h1>
-      <p style="color: #475569; font-size: 1rem; font-weight: 600; max-width: 700px; margin: 0 auto 28px auto; line-height: 1.5;">
-        Selecione abaixo qual aplicativo você deseja acessar. Cada sistema é 100% independente, otimizado para celulares, tablets e computadores, com mapas, GPS e notificações ativas!
+      <p style="color: #4b5563; font-size: 1rem; max-width: 700px; margin: 0 auto 24px auto;">
+        Solicite corridas econômicas com <strong>99Pop</strong>, viagens rápidas de <strong>99Moto</strong>, transporte com ar de <strong>99Comfort</strong> ou entregas flash com <strong>99Entrega</strong>!
       </p>
 
-      <!-- 3 CARDS DOS APLICATIVOS PRINCIPAIS -->
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; text-align: left;">
+      <!-- Cards dos Aplicativos -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; text-align: left; margin-top: 20px;">
         
-        <!-- CARD 1: APP CLIENTE -->
-        <div style="background: linear-gradient(180deg, #ffffff 0%, #f0f9ff 100%); border: 2px solid #bae6fd; border-radius: 18px; padding: 24px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 10px 28px rgba(2, 132, 199, 0.12); transition: transform 0.2s ease;">
+        <!-- CARD APP CLIENTE -->
+        <div style="background: #fffdf5; border: 2px solid #fde68a; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; justify-content: space-between;">
           <div>
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-              <div style="width: 54px; height: 54px; background: linear-gradient(135deg, #0284c7, #0369a1); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.7rem; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);">
-                📱
-              </div>
-              <span style="background: #e0f2fe; color: #0284c7; font-weight: 800; font-size: 0.75rem; padding: 4px 12px; border-radius: 12px;">Para Clientes</span>
+            <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #ff9e00, #e68a00); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #fff; margin-bottom: 14px;">
+              📱
             </div>
-            <h3 style="color: #0f172a; font-size: 1.35rem; font-weight: 800; margin-bottom: 8px;">Aplicativo do Cliente</h3>
-            <p style="color: #475569; font-size: 0.88rem; line-height: 1.45; margin-bottom: 18px;">
-              Solicite corridas de carro, viagens de moto e entregas flash com autocomplete de endereços, cálculo de quilometragem e mapas em tempo real.
+            <h3 style="font-size: 1.25rem; font-weight: 800; color: #111827; margin-bottom: 6px;">App do Cliente 99</h3>
+            <p style="font-size: 0.88rem; color: #4b5563; line-height: 1.4; margin-bottom: 20px;">
+              Solicite corridas com 99Pop, 99Moto e 99Entrega com mapas interativos e busca de endereços.
             </p>
-            <ul style="list-style: none; padding: 0; margin: 0 0 22px 0; font-size: 0.84rem; color: #334155; display: flex; flex-direction: column; gap: 10px;">
-              <li style="display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-circle-check" style="color: #0284c7;"></i> Autocomplete no Mapa (Origem e Destino)</li>
-              <li style="display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-circle-check" style="color: #0284c7;"></i> Modalidades UberX, Comfort, Moto e Entrega</li>
-              <li style="display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-circle-check" style="color: #0284c7;"></i> Rastreamento ao Vivo do Veículo & Chat Direct</li>
-            </ul>
           </div>
-          <a href="cliente.html" class="btn-primary full-width" style="text-align: center; text-decoration: none; padding: 14px; font-size: 0.95rem; background: linear-gradient(135deg, #0284c7, #0369a1); border-radius: 12px; display: block;">
-            🚀 ABRIR APP DO CLIENTE
+          <a href="cliente.html" class="btn-primary full-width" style="text-align: center; text-decoration: none;">
+            📱 ABRIR APP DO CLIENTE 99
           </a>
         </div>
 
-        <!-- CARD 2: APP MOTORISTA -->
-        <div style="background: linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%); border: 2px solid #a7f3d0; border-radius: 18px; padding: 24px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 10px 28px rgba(16, 185, 129, 0.12); transition: transform 0.2s ease;">
+        <!-- CARD APP MOTORISTA -->
+        <div style="background: #fffdf5; border: 2px solid #fde68a; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; justify-content: space-between;">
           <div>
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-              <div style="width: 54px; height: 54px; background: linear-gradient(135deg, #10b981, #047857); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.7rem; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);">
-                🚗
-              </div>
-              <span style="background: #d1fae5; color: #047857; font-weight: 800; font-size: 0.75rem; padding: 4px 12px; border-radius: 12px;">Para Motoristas</span>
+            <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #ff9e00, #e68a00); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #fff; margin-bottom: 14px;">
+              🚗
             </div>
-            <h3 style="color: #0f172a; font-size: 1.35rem; font-weight: 800; margin-bottom: 8px;">Aplicativo do Motorista</h3>
-            <p style="color: #475569; font-size: 0.88rem; line-height: 1.45; margin-bottom: 18px;">
-              Fique online, configure formas de pagamento aceitas, receba corridas com sirene sonora, navegue com GPS até a coleta/entrega e dê baixa em dinheiro!
+            <h3 style="font-size: 1.25rem; font-weight: 800; color: #111827; margin-bottom: 6px;">App do Motorista 99</h3>
+            <p style="font-size: 0.88rem; color: #4b5563; line-height: 1.4; margin-bottom: 20px;">
+              Fique ONLINE, receba chamadas com sirene e acompanhe seus ganhos do dia em tempo real.
             </p>
-            <ul style="list-style: none; padding: 0; margin: 0 0 22px 0; font-size: 0.84rem; color: #334155; display: flex; flex-direction: column; gap: 10px;">
-              <li style="display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Status ONLINE/OFFLINE com Sirene de Chamada</li>
-              <li style="display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Preferências de Pagamento (PIX, Cartão, Dinheiro)</li>
-              <li style="display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Botões Coletar na Origem & Entregar no Destino</li>
-              <li style="display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Voo Automático de Mapa & Ligação WhatsApp</li>
-            </ul>
           </div>
-          <a href="motorista.html" class="btn-success full-width" style="text-align: center; text-decoration: none; padding: 14px; font-size: 0.95rem; border-radius: 12px; display: block;">
-            🚘 ABRIR APP DO MOTORISTA
+          <a href="motorista.html" class="btn-primary full-width" style="text-align: center; text-decoration: none;">
+            🚗 ABRIR APP DO MOTORISTA 99
           </a>
         </div>
 
-        <!-- CARD 3: PAINEL ADMIN -->
-        <div style="background: linear-gradient(180deg, #ffffff 0%, #fffbeb 100%); border: 2px solid #fde68a; border-radius: 18px; padding: 24px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 10px 28px rgba(245, 158, 11, 0.12); transition: transform 0.2s ease;">
+        <!-- CARD PAINEL ADMIN -->
+        <div style="background: #fffdf5; border: 2px solid #fde68a; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; justify-content: space-between;">
           <div>
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-              <div style="width: 54px; height: 54px; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.7rem; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);">
-                🛡️
-              </div>
-              <span style="background: #fef3c7; color: #b45309; font-weight: 800; font-size: 0.75rem; padding: 4px 12px; border-radius: 12px;">Administração</span>
+            <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #d97706, #b45309); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #fff; margin-bottom: 14px;">
+              🛡️
             </div>
-            <h3 style="color: #0f172a; font-size: 1.35rem; font-weight: 800; margin-bottom: 8px;">Painel Backoffice Admin</h3>
-            <p style="color: #475569; font-size: 0.88rem; line-height: 1.45; margin-bottom: 18px;">
-              Controle total de frota, aprovação de documentos CNH, exclusão definitiva de motoristas via lista negra, baixas de dinheiro e regras tarifárias.
+            <h3 style="font-size: 1.25rem; font-weight: 800; color: #111827; margin-bottom: 6px;">Painel Admin 99</h3>
+            <p style="font-size: 0.88rem; color: #4b5563; line-height: 1.4; margin-bottom: 20px;">
+              Gerencie a frota de motoristas, aprove CNHs e controle as tarifas da cidade 100% no celular.
             </p>
-            <ul style="list-style: none; padding: 0; margin: 0 0 22px 0; font-size: 0.84rem; color: #334155; display: flex; flex-direction: column; gap: 10px;">
-              <li style="display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-circle-check" style="color: #f59e0b;"></i> Gestão de Frota & Exclusão com Lista Negra</li>
-              <li style="display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-circle-check" style="color: #f59e0b;"></i> Gestão & Baixas de Pagamentos em Dinheiro</li>
-              <li style="display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-circle-check" style="color: #f59e0b;"></i> Faturamento Total & Soma Geral de Km Rodados</li>
-            </ul>
           </div>
-          <a href="admin.html" class="btn-primary full-width" style="text-align: center; text-decoration: none; padding: 14px; font-size: 0.95rem; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 12px; display: block;">
-            🛡️ ABRIR PAINEL ADMINISTRATIVO
+          <a href="admin.html" class="btn-primary full-width" style="text-align: center; text-decoration: none; background: linear-gradient(135deg, #d97706, #b45309);">
+            🛡️ ABRIR PAINEL ADMIN 99
           </a>
         </div>
 
@@ -132,9 +103,8 @@
     </div>
   </section>
 
-  <!-- Rodapé Profissional -->
   <footer style="text-align: center; padding: 24px; color: #64748b; font-size: 0.85rem; font-weight: 600;">
-    UBERFLOW Enterprise Engine v3.0 &bull; Plataforma Profissional On-Demand &bull; Todos os direitos reservados.
+    99 Super-App Brasil v3.0 &bull; Todos os direitos reservados.
   </footer>
 
 </body>

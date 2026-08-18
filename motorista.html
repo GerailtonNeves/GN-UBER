@@ -3,13 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>UberFlow - Aplicativo do Motorista / Entregador</title>
+  <title>99 Driver - Aplicativo do Motorista / Entregador</title>
   
-  <!-- App Icons & Favicon -->
   <link rel="icon" type="image/jpeg" href="assets/icon_motorista.jpg" />
   <link rel="apple-touch-icon" href="assets/icon_motorista.jpg" />
 
-  <!-- CSS External Libraries -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -17,300 +15,231 @@
 </head>
 <body>
 
-  <!-- Toast Notification Container -->
   <div id="toastContainer" class="toast-container"></div>
 
-  <!-- Top Navigation Header -->
   <header class="app-header">
     <div class="logo">
-      <div class="logo-icon-wrap" style="background: linear-gradient(135deg, #10b981, #047857);"><i class="fa-solid fa-id-card logo-icon"></i></div>
+      <div class="logo-icon-wrap"><i class="fa-solid fa-id-card logo-icon"></i></div>
       <div class="logo-text">
-        <span>UBER<strong>FLOW</strong></span>
-        <small class="version" style="color: #10b981;">🚗 APP EXCLUSIVO DO MOTORISTA</small>
+        <span>99<strong>MOTORISTA</strong></span>
+        <small class="version">🚗 99POP, 99MOTO & 99ENTREGA</small>
       </div>
-      <span class="badge-live"><i class="fa-solid fa-circle blink"></i> LIVE MOTORISTA</span>
+      <span class="badge-live"><i class="fa-solid fa-circle blink"></i> 99 DRIVER LIVE</span>
     </div>
 
-    <!-- Navigation Shortcuts -->
     <nav class="mode-tabs">
-      <a href="index.html" class="tab-btn"><i class="fa-solid fa-house"></i> Portal Principal</a>
-      <a href="cliente.html" class="tab-btn"><i class="fa-solid fa-user"></i> App Cliente</a>
-      <a href="admin.html" class="tab-btn"><i class="fa-solid fa-gears"></i> Painel Admin</a>
+      <a href="index.html" class="tab-btn"><i class="fa-solid fa-house" style="color: #ff9e00;"></i> Portal Principal</a>
+      <a href="cliente.html" class="tab-btn"><i class="fa-solid fa-user" style="color: #ff9e00;"></i> App Cliente 99</a>
+      <a href="admin.html" class="tab-btn"><i class="fa-solid fa-gears" style="color: #ff9e00;"></i> Painel Admin 99</a>
     </nav>
   </header>
 
-  <!-- Main Container -->
   <main class="main-container mode-single" id="mainLayout">
 
-    <!-- DRIVER APP SECTION -->
     <section class="app-panel" id="panelDriver">
       <div class="panel-header">
-        <h2><i class="fa-solid fa-taxi icon-driver" style="color: #10b981;"></i> Painel do Motorista / Moto / Entregador</h2>
+        <h2><i class="fa-solid fa-taxi icon-driver" style="color: #ff9e00;"></i> Painel do Motorista / Entregador 99</h2>
         
         <div class="header-actions">
-          <button class="btn-primary btn-sm" style="background: linear-gradient(135deg, #10b981, #047857);" onclick="document.getElementById('modalRegisterDriver').classList.remove('hidden')">
-            <i class="fa-solid fa-user-plus"></i> + Nova Moto/Carro
+          <button class="btn-primary btn-sm" onclick="document.getElementById('modalRegisterDriver').classList.remove('hidden')">
+            <i class="fa-solid fa-user-plus"></i> + Nova Moto/Carro 99
           </button>
           
-          <select id="selectActiveDriver" class="driver-select" onchange="window.switchActiveDriver(this.value)">
-            <!-- Populated dynamically -->
-          </select>
-          
-          <div class="toggle-online">
-            <span>OFFLINE</span>
-            <label class="switch">
-              <input type="checkbox" id="toggleDriverOnline">
-              <span class="slider"></span>
-            </label>
-            <span style="color: var(--success);">ONLINE</span>
-          </div>
+          <select id="selectActiveDriver" class="driver-select" onchange="window.switchActiveDriver(this.value)"></select>
+
+          <label class="switch">
+            <input type="checkbox" id="toggleDriverOnline" checked>
+            <span class="slider round"></span>
+          </label>
+          <span id="driverStatusLabel" style="font-weight: 800; color: #10b981;">ONLINE</span>
         </div>
       </div>
 
-      <!-- Map View -->
-      <div class="map-container">
-        <div id="mapDriver" class="leaflet-map"></div>
+      <div class="map-wrap">
+        <div id="mapDriver" class="map-container"></div>
       </div>
 
-      <!-- Driver Controls & Earnings Box -->
-      <div class="driver-dashboard-footer">
-        <!-- Caixa de Preferências de Formas de Pagamento do Motorista -->
-        <div class="driver-payment-preferences" style="background: #ffffff; border: 1px solid var(--border-color); padding: 12px 16px; border-radius: 14px; margin-bottom: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.03);">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <strong style="color: #0f172a; font-size: 0.85rem; font-weight: 800; display: flex; align-items: center; gap: 6px;">
-              <i class="fa-solid fa-wallet" style="color: var(--primary);"></i> Formas de Pagamento que Aceito Receber:
-            </strong>
-            <div>
-              <button type="button" class="chip-btn" onclick="window.setDriverPaymentPrefsAll(true)">Marcar Todos</button>
-              <button type="button" class="chip-btn" onclick="window.setDriverPaymentPrefsAll(false)">Desmarcar</button>
-            </div>
+      <!-- PAINEL DE CORRIDA ACEITA E EM ANDAMENTO PARA O MOTORISTA -->
+      <div id="cardDriverActiveRide" class="hidden" style="background: #fffdf5; border: 3px solid #ff9e00; border-radius: 16px; padding: 18px; margin-top: 14px; box-shadow: 0 10px 25px rgba(255, 158, 0, 0.2);">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #fde68a; padding-bottom: 10px; margin-bottom: 12px;">
+          <h3 style="color: #d97706; font-size: 1.1rem; font-weight: 800;"><i class="fa-solid fa-car-side" style="color: #ff9e00;"></i> CORRIDA EM ANDAMENTO 99</h3>
+          <span id="driverActiveStatus" style="background: #10b981; color: #fff; padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 0.78rem;">🟡 Motorista a Caminho</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px;">
+          <div>
+            <small style="color: #64748b; font-weight: 700;">PASSAGEIRO:</small>
+            <div id="driverActivePassenger" style="font-size: 1.1rem; font-weight: 800; color: #111827;">Cliente 99</div>
           </div>
-          <div style="display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.82rem; font-weight: 700; color: #0f172a;">
-            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-              <input type="checkbox" id="prefPayPix" checked onchange="window.saveDriverPaymentPrefs()"> ⚡ PIX
-            </label>
-            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-              <input type="checkbox" id="prefPayCard" checked onchange="window.saveDriverPaymentPrefs()"> 💳 Cartão
-            </label>
-            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-              <input type="checkbox" id="prefPayCash" checked onchange="window.saveDriverPaymentPrefs()"> 💵 Dinheiro
-            </label>
+          <div>
+            <small style="color: #10b981; font-weight: 700;">🟢 EMBARQUE (COLETA):</small>
+            <div id="driverActiveOrigin" style="font-weight: 700; color: #111827;">MASP - Av. Paulista</div>
+          </div>
+          <div>
+            <small style="color: #ef4444; font-weight: 700;">🔴 DESTINO FINAL:</small>
+            <div id="driverActiveDest" style="font-weight: 700; color: #111827;">Parque Ibirapuera</div>
+          </div>
+          <div>
+            <small style="color: #d97706; font-weight: 700;">VALOR A RECEBER:</small>
+            <div id="driverActiveFare" style="font-size: 1.3rem; font-weight: 800; color: #10b981;">R$ 18,50</div>
           </div>
         </div>
 
-        <div class="earnings-summary">
-          <div class="earning-box">
-            <span class="label">Ganhos do Dia</span>
-            <strong class="val" id="driverEarningsTotal">R$ 345,50</strong>
-          </div>
-          <div class="earning-box">
-            <span class="label">Corridas Concluídas</span>
-            <strong class="val" id="driverRidesCount">14</strong>
-          </div>
-          <div class="earning-box">
-            <span class="label">Avaliação</span>
-            <strong class="val"><i class="fa-solid fa-star star"></i> 4.90</strong>
-          </div>
+        <!-- BOTÕES DE CONTATO E SUPORTE -->
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+          <button onclick="window.callPassenger()" class="btn-secondary" style="flex: 1; font-size: 0.8rem; padding: 8px; background: #fff; border-color: #fde68a; font-weight: 700;">
+            📞 Ligar p/ Cliente
+          </button>
+          <button onclick="window.openChatWithPassenger()" class="btn-secondary" style="flex: 1; font-size: 0.8rem; padding: 8px; background: #fff; border-color: #fde68a; font-weight: 700;">
+            💬 Chat 99
+          </button>
+          <button onclick="window.openSupport99()" class="btn-secondary" style="flex: 1; font-size: 0.8rem; padding: 8px; background: #fffbeb; color: #d97706; border-color: #fde68a; font-weight: 800;">
+            🛡️ Suporte 99 24h
+          </button>
         </div>
 
-        <div class="driver-active-actions hidden" id="driverActions">
-          <h4 id="driverCurrentRideTitle">Corrida ou Entrega em Andamento</h4>
-          
-          <!-- Bloco de Contato do Cliente com Nome, Telefone e Botão Ligar -->
-          <div style="background: rgba(249, 87, 0, 0.12); border: 1px solid var(--primary); padding: 10px 14px; border-radius: 12px; margin: 10px 0; display: flex; align-items: center; justify-content: space-between;">
-            <div>
-              <span style="color: var(--text-muted); font-size: 0.75rem; display: block;">Cliente / Passageiro:</span>
-              <strong id="driverPassengerNameText" style="color: #ffffff; font-size: 0.95rem;">Fernanda Lima</strong><br>
-              <small id="driverPassengerPhoneText" style="color: var(--primary); font-weight: 800;">📞 (11) 99876-5432</small>
-            </div>
-            <a id="btnCallPassenger" href="https://wa.me/5511998765432" target="_blank" class="btn-success" style="padding: 8px 12px; font-size: 0.75rem; font-weight: 800; text-decoration: none; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px;">
-              <i class="fa-solid fa-phone"></i> Ligar / Zap
-            </a>
-          </div>
-
-          <p id="driverCurrentRideSub" style="font-size: 0.8rem; margin-bottom: 10px;"></p>
-
-          <div class="action-buttons-group">
-            <button id="btnOpenGPS" class="btn-primary" style="background: linear-gradient(135deg, #0284c7, #0369a1); width: 100%; margin-bottom: 6px; font-weight: 800; padding: 10px; font-size: 0.82rem;" onclick="window.openDriverGPSNavigation()"><i class="fa-solid fa-location-arrow"></i> 🗺️ ABRIR NAVEGAÇÃO GPS DO CLIENTE</button>
-            
-            <!-- Botões Especiais de Coleta & Entrega (Compactos e Elegantes) -->
-            <button id="btnDriverCollect" class="btn-warning" style="background: linear-gradient(135deg, #f59e0b, #d97706); width: 100%; margin-bottom: 6px; font-weight: 800; padding: 10px 14px; font-size: 0.82rem; border: none; border-radius: 8px; color: #fff; cursor: pointer;"><i class="fa-solid fa-box"></i> 📦 COLETAR ENCOMENDA (NA ORIGEM)</button>
-            
-            <button id="btnDriverDeliver" class="btn-success hidden" style="background: linear-gradient(135deg, #10b981, #059669); width: 100%; margin-bottom: 6px; font-weight: 800; padding: 10px 14px; font-size: 0.82rem; border: none; border-radius: 8px; color: #fff; cursor: pointer;"><i class="fa-solid fa-truck-ramp-box"></i> 🚚 ENTREGAR NO DESTINO (AO CLIENTE)</button>
-
-            <button id="btnDriverArrived" class="btn-warning hidden" style="padding: 8px 12px; font-size: 0.8rem;"><i class="fa-solid fa-bullseye"></i> Cheguei ao Local</button>
-            <button id="btnDriverStart" class="btn-primary hidden" style="padding: 8px 12px; font-size: 0.8rem;"><i class="fa-solid fa-play"></i> Iniciar Viagem</button>
-            <button id="btnDriverComplete" class="btn-success hidden" style="padding: 8px 12px; font-size: 0.8rem;"><i class="fa-solid fa-flag-checkered"></i> Finalizar Viagem</button>
-          </div>
-
-          <!-- Card de Endereço de Entrega que surge após Clicar em Coletar -->
-          <div class="delivery-address-card hidden" id="deliveryAddressCard" style="margin-top: 10px;">
-            <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; padding: 14px; border-radius: 12px; text-align: left;">
-              <span style="color: #10b981; font-weight: 800; font-size: 0.85rem; display: block; margin-bottom: 4px;">
-                <i class="fa-solid fa-map-pin"></i> ENDEREÇO ONDE DEVE FAZER A ENTREGA:
-              </span>
-              <h3 id="deliveryDestAddressText" style="color: #ffffff; font-size: 1.05rem; font-weight: 800; margin: 4px 0 10px 0; line-height: 1.3;">
-                Parque Ibirapuera - Portão 3
-              </h3>
-              <button id="btnOpenGPSDelivery" class="btn-primary" style="background: linear-gradient(135deg, #10b981, #047857); width: 100%; font-weight: 800; padding: 12px;" onclick="window.openDriverDeliveryGPS()"><i class="fa-solid fa-diamond-turn-right"></i> 🗺️ ABRIR GPS DIRETO DO DESTINO DE ENTREGA</button>
-            </div>
-          </div>
+        <!-- BOTÕES DE AÇÕES DA CORRIDA E ETAPAS DE COLETA PELO MOTORISTA -->
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button id="btnDriverArrived" onclick="window.driverArrivedAtPickup()" class="btn-primary" style="flex: 1; background: #0284c7; font-size: 0.82rem; padding: 12px;">
+            📍 CHEGUEI AO EMBARQUE
+          </button>
+          <button id="btnDriverCollect" onclick="window.driverCollectPackage()" class="btn-success" style="flex: 1; font-size: 0.82rem; padding: 12px;">
+            📦 COLETAR ENCOMENDA
+          </button>
+          <button id="btnDriverCollected" onclick="window.driverPackageCollected()" class="btn-primary" style="flex: 1; background: linear-gradient(135deg, #ff9e00, #e68a00); font-size: 0.82rem; padding: 12px;">
+            ✅ COLETADO! ABRIR DESTINO
+          </button>
+          <button id="btnDriverComplete" onclick="window.driverCompleteRide()" class="btn-primary" style="flex: 1; background: linear-gradient(135deg, #10b981, #059669); font-size: 0.82rem; padding: 12px;">
+            🏁 CONCLUIR VIAGEM & RECEBER
+          </button>
         </div>
       </div>
 
-      <!-- Modal Inbound Ride Request (Dispatch Alert) -->
-      <div class="modal-overlay hidden" id="modalRideDispatch">
-        <div class="modal-card dispatch-modal">
-          <div class="modal-header">
-            <span class="badge-alert"><i class="fa-solid fa-bell"></i> NOVA CORRIDA / ENTREGA RECEBIDA</span>
-            <div class="timer-countdown" id="dispatchTimer">15s</div>
-          </div>
-          <div class="dispatch-details">
-            <h2 id="dispatchFare">R$ 22,40</h2>
-            <p><strong id="dispatchCategory">🚗 Econômico (UberX)</strong></p>
-            <p><i class="fa-solid fa-user"></i> Cliente: <span id="dispatchPassenger">Fernanda Lima</span></p>
-            
-            <div class="route-preview">
-              <div><i class="fa-solid fa-circle-dot" style="color: #f59e0b;"></i> Coleta: <span id="dispatchOrigin">Av. Paulista, 1578</span></div>
-              <div><i class="fa-solid fa-location-dot" style="color: #10b981;"></i> Entrega: <span id="dispatchDest">Parque Ibirapuera</span></div>
-            </div>
+      <!-- CONFIGURAÇÃO DE FORMAS DE PAGAMENTO ACEITAS PELO MOTORISTA -->
+      <div style="background: #fffdf5; border: 2px solid #fde68a; border-radius: 14px; padding: 14px; margin-top: 14px;">
+        <h4 style="color: #d97706; font-size: 0.9rem; font-weight: 800; margin-bottom: 8px;">
+          💳 Marque as Formas de Pagamento que você aceita receber:
+        </h4>
+        <div style="display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.85rem; font-weight: 700; color: #111827;">
+          <label style="cursor: pointer;"><input type="checkbox" id="payPix" checked onchange="window.saveDriverPaymentPrefs()"> ⚡ PIX Instantâneo</label>
+          <label style="cursor: pointer;"><input type="checkbox" id="payCard" checked onchange="window.saveDriverPaymentPrefs()"> 💳 Cartão no App 99</label>
+          <label style="cursor: pointer;"><input type="checkbox" id="payCash" checked onchange="window.saveDriverPaymentPrefs()"> 💵 Dinheiro ao Motorista</label>
+        </div>
+      </div>
 
-            <p id="dispatchProximity" style="font-size: 0.75rem; color: #10b981; margin-top: 4px;"></p>
-          </div>
-          <div class="modal-actions">
-            <button id="btnRejectRide" class="btn-secondary">Recusar</button>
-            <button id="btnAcceptRide" class="btn-success pulse"><i class="fa-solid fa-check"></i> ACEITAR CORRIDA</button>
-          </div>
+      <!-- DASHBOARD DE GANHOS DO DIA -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+        <div style="background: #fffdf5; border: 1px solid #fde68a; border-radius: 12px; padding: 14px; text-align: center;">
+          <small style="color: #4b5563; font-weight: 700;">Ganhos de Hoje</small>
+          <div style="font-size: 1.4rem; font-weight: 800; color: #d97706;">R$ 342,50</div>
+        </div>
+
+        <div style="background: #fffdf5; border: 1px solid #fde68a; border-radius: 12px; padding: 14px; text-align: center;">
+          <small style="color: #4b5563; font-weight: 700;">Corridas Concluídas</small>
+          <div style="font-size: 1.4rem; font-weight: 800; color: #10b981;">14 Corridas</div>
+        </div>
+
+        <div style="background: #fffdf5; border: 1px solid #fde68a; border-radius: 12px; padding: 14px; text-align: center;">
+          <small style="color: #4b5563; font-weight: 700;">Taxa 99 de Plataforma</small>
+          <div style="font-size: 1.4rem; font-weight: 800; color: #64748b;">15%</div>
         </div>
       </div>
     </section>
 
   </main>
 
-  <!-- MODAL CADASTRO DE NOVO MOTORISTA / MOTO -->
+  <!-- MODAL CADASTRO DE NOVO MOTORISTA OU MOTO -->
   <div class="modal-overlay hidden" id="modalRegisterDriver">
     <div class="modal-card">
       <div class="modal-header">
-        <h3><i class="fa-solid fa-id-card"></i> Cadastrar Novo Motorista ou Moto</h3>
+        <h3><i class="fa-solid fa-car"></i> Cadastrar Novo Motorista ou Moto 99</h3>
         <button class="btn-close" onclick="document.getElementById('modalRegisterDriver').classList.add('hidden')">&times;</button>
       </div>
       <form id="formRegisterDriver" class="modal-form" onsubmit="event.preventDefault(); window.handleDriverRegisterSubmit(event); return false;">
         <div class="form-group">
-          <label>Nome Completo:</label>
-          <input type="text" id="regDriverName" placeholder="Ex: João da Silva" required>
+          <label>Nome Completo do Motorista:</label>
+          <input type="text" id="regDriverName" placeholder="Ex: Carlos Eduardo Silva" required>
         </div>
         <div class="form-group">
           <label>Telefone / WhatsApp:</label>
-          <input type="text" id="regDriverPhone" placeholder="(11) 99999-9999" required>
+          <input type="text" id="regDriverPhone" placeholder="(11) 98765-4321">
         </div>
         <div class="form-group">
           <label>Tipo de Veículo:</label>
-          <select id="regDriverType" required>
-            <option value="uberx">🚗 Carro Econômico (UberX)</option>
-            <option value="comfort">🚘 Carro Comfort (Espaçoso)</option>
-            <option value="moto">🏍️ Moto Passageiro</option>
-            <option value="delivery">📦 Moto / Bike Entrega Flash</option>
+          <select id="regDriverType">
+            <option value="pop">🟡 99Pop (Carro Econômico)</option>
+            <option value="comfort">🚘 99Comfort (Carro Espaçoso)</option>
+            <option value="moto">🏍️ 99Moto (Moto Rápidas)</option>
+            <option value="delivery">📦 99Entrega (Entregador Flash)</option>
+            <option value="taxi">🚕 99Táxi Oficial</option>
           </select>
         </div>
         <div class="form-group">
           <label>Modelo do Veículo:</label>
-          <input type="text" id="regDriverModel" placeholder="Ex: Honda CG 160 Fan / Toyota Yaris" required>
+          <input type="text" id="regDriverModel" placeholder="Ex: Chevrolet Onix 1.0 ou Honda CG 160" required>
         </div>
         <div class="form-group">
           <label>Cor do Veículo:</label>
-          <input type="text" id="regDriverColor" placeholder="Ex: Preto" required>
+          <input type="text" id="regDriverColor" placeholder="Ex: Prata ou Preta">
         </div>
         <div class="form-group">
-          <label>Placa Oficial:</label>
-          <input type="text" id="regDriverPlate" placeholder="Ex: ABC-1234" required>
+          <label>Placa Oficial do Veículo:</label>
+          <input type="text" id="regDriverPlate" placeholder="Ex: BRA-9901" required>
         </div>
-        <button type="button" onclick="window.handleDriverRegisterSubmit(event)" class="btn-primary full-width" style="padding: 14px; font-weight: 800; font-size: 0.95rem;">
-          <i class="fa-solid fa-check"></i> Cadastrar e Ficar ONLINE
+        <button type="button" onclick="window.handleDriverRegisterSubmit(event)" class="btn-primary full-width" style="padding: 14px; font-weight: 800;">
+          <i class="fa-solid fa-check"></i> Cadastrar e Ficar ONLINE 99
         </button>
       </form>
     </div>
   </div>
 
-  <!-- MODAL AUTOMÁTICO DE ENDEREÇO DE ENTREGA (SURGE AO CLICAR EM COLETAR) -->
-  <div class="modal-overlay hidden" id="modalDeliveryAddress">
-    <div class="modal-card" style="border: 2px solid #10b981; text-align: center; max-width: 440px;">
-      <div style="background: rgba(16, 185, 129, 0.15); padding: 12px; border-radius: 12px; margin-bottom: 14px;">
-        <span class="badge" style="background: #10b981; color: #fff; font-weight: 800; font-size: 0.85rem; padding: 6px 12px; border-radius: 20px;">
-          📦 ENCOMENDA COLETADA COM SUCESSO!
-        </span>
-        <h2 style="color: #0f172a; margin-top: 10px; font-size: 1.15rem;">Siga para o Endereço de Entrega do Cliente:</h2>
+  <!-- MODAL CHAMADA DE VIAGEM COM SIRENE DE ÁUDIO -->
+  <div class="modal-overlay hidden" id="modalRideDispatch">
+    <div class="modal-card" style="border: 3px solid #ff9e00; background: #fffdf5;">
+      <div class="modal-header" style="border-bottom: 2px solid #fde68a;">
+        <h3 style="color: #d97706; font-size: 1.2rem;"><i class="fa-solid fa-bell fa-bounce" style="color: #ff9e00;"></i> 🔔 NOVA CORRIDA 99 DISPONÍVEL!</h3>
       </div>
+      
+      <div style="text-align: center; padding: 10px 0;">
+        <div id="dispatchDriverName" style="font-size: 0.85rem; font-weight: 700; color: #d97706; margin-bottom: 10px;"></div>
 
-      <div style="background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); text-align: left; margin-bottom: 16px;">
-        <small style="color: #10b981; font-weight: 800; text-transform: uppercase; display: block; margin-bottom: 4px;">
-          <i class="fa-solid fa-truck-ramp-box"></i> LOCAL EXATO DA ENTREGA:
-        </small>
-        <h3 id="modalDeliveryDestText" style="color: #0284c7; font-size: 1.15rem; font-weight: 800; margin: 0; line-height: 1.3;">
-          Parque Ibirapuera - Portão 3
-        </h3>
-        <p style="margin: 6px 0 0 0; color: var(--text-muted); font-size: 0.85rem;" id="modalDeliveryPassengerText">
-          Cliente: Fernanda Lima
-        </p>
-      </div>
+        <div id="dispatchTimer" style="background: #ef4444; color: #fff; font-size: 1rem; font-weight: 800; padding: 8px 16px; border-radius: 10px; margin-bottom: 14px; display: inline-block;">
+          ⏱️ 15s restante para aceitar
+        </div>
 
-      <div style="display: flex; flex-direction: column; gap: 10px;">
-        <button class="btn-primary" style="background: linear-gradient(135deg, #10b981, #047857); padding: 14px; font-size: 1rem; font-weight: 800; border: none; border-radius: 10px; cursor: pointer; color: #fff;" onclick="window.confirmStartDeliveryNavigation()">
-          <i class="fa-solid fa-diamond-turn-right"></i> 🗺️ ABRIR NAVEGAÇÃO / MAPA DA ENTREGA
-        </button>
-        <button class="btn-secondary" style="padding: 10px; font-size: 0.85rem;" onclick="document.getElementById('modalDeliveryAddress').classList.add('hidden')">
-          Fechar Aviso
-        </button>
-      </div>
-    </div>
-  </div>
+        <div style="background: #ffffff; border: 1px solid #fde68a; border-radius: 12px; padding: 14px; text-align: left; margin-bottom: 16px;">
+          <div style="margin-bottom: 8px;">
+            <small style="color: #64748b; font-weight: 700;">PASSAGEIRO:</small>
+            <div id="dispatchPassengerName" style="font-size: 1.05rem; font-weight: 800; color: #111827;">Cliente 99</div>
+          </div>
+          <div style="margin-bottom: 8px;">
+            <small style="color: #10b981; font-weight: 700;">🟢 EMBARQUE (COLETA):</small>
+            <div id="dispatchOrigin" style="font-weight: 700; color: #111827;">MASP - Av. Paulista</div>
+          </div>
+          <div style="margin-bottom: 8px;">
+            <small style="color: #ef4444; font-weight: 700;">🔴 DESTINO FINAL:</small>
+            <div id="dispatchDest" style="font-weight: 700; color: #111827;">Parque Ibirapuera</div>
+          </div>
+          <div>
+            <small style="color: #d97706; font-weight: 700;">VALOR DA CORRIDA:</small>
+            <div id="dispatchFare" style="font-size: 1.4rem; font-weight: 800; color: #10b981;">R$ 18,50</div>
+          </div>
+        </div>
 
-  <!-- MODAL DE COBRANÇA DE PAGAMENTO EM DINHEIRO (SURGE AO FINALIZAR CORRIDA EM DINHEIRO) -->
-  <div class="modal-overlay hidden" id="modalCashCollection">
-    <div class="modal-card" style="border: 3px solid #f59e0b; text-align: center; max-width: 440px; background: #ffffff;">
-      <div style="background: rgba(245, 158, 11, 0.15); padding: 14px; border-radius: 12px; margin-bottom: 14px;">
-        <span class="badge" style="background: #f59e0b; color: #fff; font-weight: 800; font-size: 0.85rem; padding: 6px 12px; border-radius: 20px;">
-          💵 PAGAMENTO EM DINHEIRO
-        </span>
-        <h2 style="color: #0f172a; margin-top: 10px; font-size: 1.15rem; font-weight: 800;">Receber Pagamento do Cliente</h2>
-      </div>
-
-      <div style="background: #f8fafc; padding: 18px; border-radius: 12px; border: 1px solid var(--border-color); text-align: center; margin-bottom: 16px;">
-        <small style="color: var(--text-muted); font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 4px;">
-          VALOR TOTAL A COBRAR DO CLIENTE:
-        </small>
-        <h1 id="cashAmountToCollectText" style="color: #10b981; font-size: 2.5rem; font-weight: 900; margin: 4px 0;">
-          R$ 0,00
-        </h1>
-        <p style="margin: 6px 0 0 0; color: #0f172a; font-size: 0.9rem; font-weight: 700;" id="cashPassengerInfoText">
-          Cliente: Fernanda Lima
-        </p>
-        <small style="color: #475569; display: block; margin-top: 8px;">
-          <i>O cliente escolheu pagar em dinheiro diretamente a você. Receba a quantia acima antes de dar baixa no sistema.</i>
-        </small>
-      </div>
-
-      <div style="display: flex; flex-direction: column; gap: 10px;">
-        <button class="btn-success" style="padding: 14px; font-size: 1rem; font-weight: 800; border: none; border-radius: 10px; cursor: pointer; color: #fff;" onclick="window.confirmCashReceived()">
-          <i class="fa-solid fa-circle-check"></i> ✅ CONFIRMAR RECEBIMENTO (DAR BAIXA EM DINHEIRO)
-        </button>
-        <button class="btn-secondary" style="padding: 10px; font-size: 0.85rem; color: #ef4444;" onclick="window.reportCashNotPaid()">
-          ⚠️ Cliente não pagou / Relatar ao Admin
-        </button>
+        <div style="display: flex; gap: 10px;">
+          <button id="btnAcceptRide" onclick="window.acceptRideDispatch()" class="btn-success full-width" style="padding: 14px; font-size: 1rem; font-weight: 800;">
+            ✅ ACEITAR VIAGEM 99
+          </button>
+          <button id="btnRejectRide" onclick="window.rejectRideDispatch()" class="btn-secondary" style="padding: 14px; font-weight: 800; background: #fee2e2; color: #ef4444; border-color: #fca5a5;">
+            ❌ RECUSAR
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- JS External Libraries & Application Scripts -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <script src="app.js?v=3.0"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const mainLayout = document.getElementById('mainLayout');
-      if (mainLayout) {
-        mainLayout.className = 'main-container mode-single';
-      }
-    });
-  </script>
 </body>
 </html>

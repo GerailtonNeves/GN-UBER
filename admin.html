@@ -3,13 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>UberFlow - Painel Administrativo Backoffice</title>
+  <title>99 Admin - Painel de Gestão da Frota</title>
   
-  <!-- App Icons & Favicon -->
   <link rel="icon" type="image/jpeg" href="assets/icon_admin.jpg" />
   <link rel="apple-touch-icon" href="assets/icon_admin.jpg" />
 
-  <!-- CSS External Libraries -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -17,245 +15,175 @@
 </head>
 <body>
 
-  <!-- Toast Notification Container -->
   <div id="toastContainer" class="toast-container"></div>
 
-  <!-- Top Navigation Header -->
   <header class="app-header">
     <div class="logo">
-      <div class="logo-icon-wrap" style="background: linear-gradient(135deg, #f59e0b, #d97706);"><i class="fa-solid fa-gears logo-icon"></i></div>
+      <div class="logo-icon-wrap"><i class="fa-solid fa-gears logo-icon"></i></div>
       <div class="logo-text">
-        <span>UBER<strong>FLOW</strong></span>
-        <small class="version" style="color: #f59e0b;">🛡️ PAINEL ADMINISTRATIVO BACKOFFICE</small>
+        <span>99<strong>GESTÃO DE FROTA</strong></span>
+        <small class="version">🛡️ PAINEL ADMINISTRATIVO 99 BRASIL</small>
       </div>
-      <span class="badge-live"><i class="fa-solid fa-circle blink"></i> LIVE ADMIN</span>
+      <span class="badge-live"><i class="fa-solid fa-circle blink"></i> 99 ADMIN LIVE</span>
     </div>
 
-    <!-- Navigation Shortcuts -->
     <nav class="mode-tabs">
-      <a href="index.html" class="tab-btn"><i class="fa-solid fa-house"></i> Portal Principal</a>
-      <a href="cliente.html" class="tab-btn"><i class="fa-solid fa-user"></i> App Cliente</a>
-      <a href="motorista.html" class="tab-btn"><i class="fa-solid fa-taxi"></i> App Motorista</a>
+      <a href="index.html" class="tab-btn"><i class="fa-solid fa-house" style="color: #ff9e00;"></i> Portal Principal</a>
+      <a href="cliente.html" class="tab-btn"><i class="fa-solid fa-user" style="color: #ff9e00;"></i> App Cliente 99</a>
+      <a href="motorista.html" class="tab-btn"><i class="fa-solid fa-taxi" style="color: #ff9e00;"></i> App Motorista 99</a>
     </nav>
   </header>
 
-  <!-- Main Container -->
   <main class="main-container mode-admin" id="mainLayout">
 
-    <!-- ADMIN BACKOFFICE SECTION -->
     <section class="app-panel admin-panel" id="panelAdmin">
       <div class="panel-header">
-        <h2><i class="fa-solid fa-chart-line" style="color: #f59e0b;"></i> Dashboard Administrativo & Controle Geral da Frota</h2>
-        <span class="status-chip" style="background: rgba(245, 158, 11, 0.15); color: #d97706;">Painel de Controle</span>
+        <h2><i class="fa-solid fa-chart-line" style="color: #ff9e00;"></i> Dashboard Administrativo & Controle Geral da Frota 99</h2>
+        <span class="status-chip">Painel de Controle 99</span>
       </div>
 
-      <!-- Metrics Summary Grid -->
-      <div class="admin-metrics-grid">
-        <div class="metric-card">
-          <div class="icon"><i class="fa-solid fa-car"></i></div>
-          <div>
-            <span class="title">Total de Corridas / Entregas</span>
-            <h3 class="number" id="adminTotalRides">0</h3>
-          </div>
+      <div class="admin-metrics-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+        <div style="background: #fffdf5; border: 1px solid #fde68a; border-radius: 12px; padding: 14px; text-align: center;">
+          <small style="color: #4b5563; font-weight: 700;">Total de Motoristas</small>
+          <div id="adminTotalDrivers" style="font-size: 1.6rem; font-weight: 800; color: #d97706;">2</div>
         </div>
 
-        <div class="metric-card">
-          <div class="icon" style="background: rgba(16, 185, 129, 0.15); color: var(--success);"><i class="fa-solid fa-money-bill-wave"></i></div>
-          <div>
-            <span class="title">Receita Total da Plataforma</span>
-            <h3 class="number" id="adminPlatformRevenue" style="color: var(--success);">R$ 0,00</h3>
-          </div>
+        <div style="background: #fffdf5; border: 1px solid #fde68a; border-radius: 12px; padding: 14px; text-align: center;">
+          <small style="color: #4b5563; font-weight: 700;">Motoristas ONLINE</small>
+          <div style="font-size: 1.6rem; font-weight: 800; color: #10b981;">2</div>
         </div>
 
-        <div class="metric-card">
-          <div class="icon" style="background: rgba(245, 158, 11, 0.15); color: var(--warning);"><i class="fa-solid fa-users"></i></div>
-          <div>
-            <span class="title">Motoristas na Plataforma</span>
-            <h3 class="number" id="adminTotalDrivers">0</h3>
-          </div>
+        <div style="background: #fffdf5; border: 1px solid #fde68a; border-radius: 12px; padding: 14px; text-align: center;">
+          <small style="color: #4b5563; font-weight: 700;">Faturamento Geral 99</small>
+          <div style="font-size: 1.6rem; font-weight: 800; color: #10b981;">R$ 1.840,00</div>
         </div>
 
-        <div class="metric-card">
-          <div class="icon" style="background: rgba(2, 132, 199, 0.15); color: #0284c7;"><i class="fa-solid fa-route"></i></div>
-          <div>
-            <span class="title">Total de Km Rodados no Sistema</span>
-            <h3 class="number" id="adminTotalKm" style="color: #0284c7;">0.0 km</h3>
-          </div>
+        <div style="background: #fffdf5; border: 1px solid #fde68a; border-radius: 12px; padding: 14px; text-align: center;">
+          <small style="color: #4b5563; font-weight: 700;">Taxa de Dinheiro</small>
+          <div style="font-size: 1.6rem; font-weight: 800; color: #64748b;">15%</div>
         </div>
       </div>
 
-      <div class="admin-body-layout">
-        <!-- Motoristas Cadastrados Table (Frota Real) -->
-        <div class="admin-box">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h3><i class="fa-solid fa-id-card"></i> Gestão de Frota & Aprovação de Documentos</h3>
-            <button class="btn-primary btn-sm" onclick="document.getElementById('modalRegisterDriver').classList.remove('hidden')"><i class="fa-solid fa-user-plus"></i> + Nova Moto/Carro</button>
-          </div>
-          
-          <div class="table-responsive">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Motorista / WhatsApp</th>
-                  <th>Veículo / Placa</th>
-                  <th>Status</th>
-                  <th>CNH & Docs</th>
-                  <th>Ações de Gestão</th>
-                </tr>
-              </thead>
-              <tbody id="adminDriversTable">
-                <!-- Populated by JS -->
-              </tbody>
-            </table>
-          </div>
+      <!-- TABELA DA FROTA -->
+      <div class="admin-box">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <h3 style="font-size: 1rem; font-weight: 800; color: #111827;">🚗 Frota de Motoristas 99:</h3>
+          <button class="btn-primary btn-sm" onclick="document.getElementById('modalRegisterDriver').classList.remove('hidden')">+ Novo Motorista 99</button>
         </div>
 
-        <!-- Tariff & Platform Controls Form -->
-        <div class="admin-box">
-          <h3><i class="fa-solid fa-sliders"></i> Preços & Regras de Tarifa</h3>
-          <form id="formTariffs" class="tariffs-form" onsubmit="event.preventDefault(); window.handleTariffsSubmit(event); return false;">
-            <div class="form-group">
-              <label>Preço Base (R$):</label>
-              <input type="number" step="0.50" id="cfgBasePrice" value="6.00" required>
-            </div>
-            <div class="form-group">
-              <label>Valor por Km (R$):</label>
-              <input type="number" step="0.10" id="cfgPriceKm" value="2.50" required>
-            </div>
-            <div class="form-group">
-              <label>Valor por Minuto (R$):</label>
-              <input type="number" step="0.05" id="cfgPriceMin" value="0.50" required>
-            </div>
-            <div class="form-group">
-              <label>Comissão da Plataforma (%):</label>
-              <input type="number" id="cfgFeePercent" value="15" required>
-            </div>
-            <div class="form-group">
-              <label>Tarifa Dinâmica / Multiplicador:</label>
-              <select id="cfgSurge">
-                <option value="1.0">1.0x (Normal)</option>
-                <option value="1.2">1.2x (Horário de Pico)</option>
-                <option value="1.5">1.5x (Chuva / Alta Demanda)</option>
-                <option value="2.0">2.0x (Madrugada / Eventos)</option>
-              </select>
-            </div>
-            <button type="button" onclick="window.handleTariffsSubmit(event)" class="btn-primary full-width">
-              <i class="fa-solid fa-floppy-disk"></i> Salvar Novas Tarifas
-            </button>
-          </form>
-        </div>
-
-        <!-- Real-Time Ride Tracker Table -->
-        <div class="admin-box full-width-box">
-          <h3><i class="fa-solid fa-list-check"></i> Monitoramento de Corridas & Entregas em Tempo Real</h3>
-          <div class="table-responsive">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Passageiro / Modalidade</th>
-                  <th>Origem → Destino</th>
-                  <th>Distância (Km)</th>
-                  <th>Valor Total (R$)</th>
-                  <th>Taxa Admin (R$)</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody id="adminRidesTable">
-                <!-- Populated by JS -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Card de Gestão de Pagamentos em Dinheiro (Admin) -->
-        <div class="admin-box full-width-box" style="margin-top: 14px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-            <h3><i class="fa-solid fa-money-bill-wave" style="color: #10b981;"></i> 💵 Gestão e Baixas de Pagamentos em Dinheiro</h3>
-            <span class="badge-live" style="background: rgba(16, 185, 129, 0.15); color: #047857; font-size: 0.85rem; padding: 6px 14px;">Total Coletado: <strong id="adminTotalCashCollected" style="margin-left: 4px; font-size: 1rem;">R$ 0,00</strong></span>
-          </div>
-          <div class="table-responsive">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>ID / Data</th>
-                  <th>Motorista</th>
-                  <th>Cliente</th>
-                  <th>Valor Cobrado (R$)</th>
-                  <th>Taxa Plataforma (15%)</th>
-                  <th>Status da Baixa</th>
-                  <th>Ações Admin</th>
-                </tr>
-              </thead>
-              <tbody id="adminCashTable">
-                <tr>
-                  <td colspan="7" style="text-align: center; padding: 20px; color: #64748b;">
-                    Nenhum pagamento em dinheiro registrado ainda.
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr style="background: #fffbeb;">
+                <th>Motorista</th>
+                <th>Veículo & Placa</th>
+                <th>Status</th>
+                <th>CNH 99</th>
+                <th>Ação</th>
+              </tr>
+            </thead>
+            <tbody id="adminDriversTable"></tbody>
+          </table>
         </div>
       </div>
+
     </section>
 
   </main>
 
-  <!-- MODAL CADASTRO DE NOVO MOTORISTA / MOTO -->
+  <!-- MODAL CADASTRO DE NOVO MOTORISTA OU MOTO -->
   <div class="modal-overlay hidden" id="modalRegisterDriver">
     <div class="modal-card">
       <div class="modal-header">
-        <h3><i class="fa-solid fa-id-card"></i> Cadastrar Novo Motorista ou Moto</h3>
+        <h3><i class="fa-solid fa-car"></i> Cadastrar Novo Motorista 99</h3>
         <button class="btn-close" onclick="document.getElementById('modalRegisterDriver').classList.add('hidden')">&times;</button>
       </div>
       <form id="formRegisterDriver" class="modal-form" onsubmit="event.preventDefault(); window.handleDriverRegisterSubmit(event); return false;">
         <div class="form-group">
-          <label>Nome Completo:</label>
-          <input type="text" id="regDriverName" placeholder="Ex: João da Silva" required>
+          <label>Nome Completo do Motorista:</label>
+          <input type="text" id="regDriverName" placeholder="Ex: Carlos Eduardo Silva" required>
         </div>
         <div class="form-group">
           <label>Telefone / WhatsApp:</label>
-          <input type="text" id="regDriverPhone" placeholder="(11) 99999-9999" required>
+          <input type="text" id="regDriverPhone" placeholder="(11) 98765-4321">
         </div>
         <div class="form-group">
           <label>Tipo de Veículo:</label>
-          <select id="regDriverType" required>
-            <option value="uberx">🚗 Carro Econômico (UberX)</option>
-            <option value="comfort">🚘 Carro Comfort (Espaçoso)</option>
-            <option value="moto">🏍️ Moto Passageiro</option>
-            <option value="delivery">📦 Moto / Bike Entrega Flash</option>
+          <select id="regDriverType">
+            <option value="pop">🟡 99Pop (Carro Econômico)</option>
+            <option value="comfort">🚘 99Comfort (Carro Espaçoso)</option>
+            <option value="moto">🏍️ 99Moto (Moto Rápidas)</option>
+            <option value="delivery">📦 99Entrega (Entregador Flash)</option>
+            <option value="taxi">🚕 99Táxi Oficial</option>
           </select>
         </div>
         <div class="form-group">
           <label>Modelo do Veículo:</label>
-          <input type="text" id="regDriverModel" placeholder="Ex: Honda CG 160 Fan / Toyota Yaris" required>
+          <input type="text" id="regDriverModel" placeholder="Ex: Chevrolet Onix 1.0 ou Honda CG 160" required>
         </div>
         <div class="form-group">
           <label>Cor do Veículo:</label>
-          <input type="text" id="regDriverColor" placeholder="Ex: Preto" required>
+          <input type="text" id="regDriverColor" placeholder="Ex: Prata ou Preta">
         </div>
         <div class="form-group">
-          <label>Placa Oficial:</label>
-          <input type="text" id="regDriverPlate" placeholder="Ex: ABC-1234" required>
+          <label>Placa Oficial do Veículo:</label>
+          <input type="text" id="regDriverPlate" placeholder="Ex: BRA-9901" required>
         </div>
-        <button type="button" onclick="window.handleDriverRegisterSubmit(event)" class="btn-primary full-width" style="padding: 14px; font-weight: 800; font-size: 0.95rem;">
-          <i class="fa-solid fa-check"></i> Cadastrar e Ficar ONLINE
+        <button type="button" onclick="window.handleDriverRegisterSubmit(event)" class="btn-primary full-width" style="padding: 14px; font-weight: 800;">
+          <i class="fa-solid fa-check"></i> Cadastrar e Ficar ONLINE 99
         </button>
       </form>
     </div>
   </div>
 
-  <!-- JS External Libraries & Application Scripts -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <!-- MODAL EDITAR MOTORISTA -->
+  <div class="modal-overlay hidden" id="modalEditDriver">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-pen-to-square"></i> Editar Dados do Motorista 99</h3>
+        <button class="btn-close" onclick="document.getElementById('modalEditDriver').classList.add('hidden')">&times;</button>
+      </div>
+      <form id="formEditDriver" class="modal-form" onsubmit="event.preventDefault(); window.saveEditedDriverSubmit(event); return false;">
+        <input type="hidden" id="editDriverId">
+        <div class="form-group">
+          <label>Nome Completo:</label>
+          <input type="text" id="editDriverName" required>
+        </div>
+        <div class="form-group">
+          <label>Telefone / WhatsApp:</label>
+          <input type="text" id="editDriverPhone" required>
+        </div>
+        <div class="form-group">
+          <label>Tipo de Veículo:</label>
+          <select id="editDriverType">
+            <option value="pop">🟡 99Pop (Carro Econômico)</option>
+            <option value="comfort">🚘 99Comfort (Carro Espaçoso)</option>
+            <option value="moto">🏍️ 99Moto (Moto Rápidas)</option>
+            <option value="delivery">📦 99Entrega (Entregador Flash)</option>
+            <option value="taxi">🚕 99Táxi Oficial</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Modelo do Veículo:</label>
+          <input type="text" id="editDriverModel" required>
+        </div>
+        <div class="form-group">
+          <label>Cor do Veículo:</label>
+          <input type="text" id="editDriverColor">
+        </div>
+        <div class="form-group">
+          <label>Placa Oficial:</label>
+          <input type="text" id="editDriverPlate" required>
+        </div>
+        <button type="button" onclick="window.saveEditedDriverSubmit(event)" class="btn-primary full-width" style="padding: 14px; font-weight: 800;">
+          <i class="fa-solid fa-floppy-disk"></i> Salvar Alterações 99
+        </button>
+      </form>
+    </div>
+  </div>
+
   <script src="app.js?v=3.0"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const mainLayout = document.getElementById('mainLayout');
-      if (mainLayout) {
-        mainLayout.className = 'main-container mode-admin';
-      }
-    });
-  </script>
 </body>
 </html>

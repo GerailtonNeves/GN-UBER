@@ -3,13 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>UberFlow - Aplicativo do Cliente</title>
+  <title>99 Super-App - Aplicativo do Passageiro</title>
   
-  <!-- App Icons & Favicon -->
   <link rel="icon" type="image/jpeg" href="assets/icon_passageiro.jpg" />
   <link rel="apple-touch-icon" href="assets/icon_passageiro.jpg" />
 
-  <!-- CSS External Libraries -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -17,154 +15,82 @@
 </head>
 <body>
 
-  <!-- Toast Notification Container -->
   <div id="toastContainer" class="toast-container"></div>
 
-  <!-- Top Navigation Header -->
   <header class="app-header">
     <div class="logo">
-      <div class="logo-icon-wrap" style="background: linear-gradient(135deg, #0284c7, #0369a1);"><i class="fa-solid fa-user logo-icon"></i></div>
+      <div class="logo-icon-wrap"><i class="fa-solid fa-car-side logo-icon"></i></div>
       <div class="logo-text">
-        <span>UBER<strong>FLOW</strong></span>
-        <small class="version">📱 APP EXCLUSIVO DO CLIENTE</small>
+        <span>99<strong>SUPER-APP</strong></span>
+        <small class="version">📱 APP DO PASSAGEIRO & ENTREGAS 99</small>
       </div>
-      <span class="badge-live"><i class="fa-solid fa-circle blink"></i> LIVE CLIENTE</span>
+      <span class="badge-live"><i class="fa-solid fa-circle blink"></i> 99 POP & MOTO</span>
     </div>
 
-    <!-- Navigation Shortcuts -->
     <nav class="mode-tabs">
-      <a href="index.html" class="tab-btn"><i class="fa-solid fa-house"></i> Portal Principal</a>
-      <a href="motorista.html" class="tab-btn"><i class="fa-solid fa-taxi"></i> App Motorista</a>
-      <a href="admin.html" class="tab-btn"><i class="fa-solid fa-gears"></i> Painel Admin</a>
+      <a href="index.html" class="tab-btn"><i class="fa-solid fa-house" style="color: #ff9e00;"></i> Portal Principal</a>
+      <a href="motorista.html" class="tab-btn"><i class="fa-solid fa-taxi" style="color: #ff9e00;"></i> App Motorista 99</a>
+      <a href="admin.html" class="tab-btn"><i class="fa-solid fa-gears" style="color: #ff9e00;"></i> Painel Admin 99</a>
     </nav>
   </header>
 
-  <!-- Main Container -->
   <main class="main-container mode-single" id="mainLayout">
 
-    <!-- PASSENGER APP SECTION -->
     <section class="app-panel passenger-panel" id="panelPassenger">
       <div class="panel-header">
-        <h2><i class="fa-solid fa-location-dot" style="color: #0284c7;"></i> Solicitar Viagem ou Entrega Flash</h2>
+        <h2><i class="fa-solid fa-location-dot" style="color: #ff9e00;"></i> 99Pop, 99Moto, 99Comfort & 99Entrega</h2>
         <div class="header-actions">
-          <button id="btnOpenModalPassenger" class="btn-primary btn-sm" onclick="document.getElementById('modalRegisterPassenger').classList.remove('hidden')"><i class="fa-solid fa-user-plus"></i> + Perfil de Cliente</button>
-          <span class="status-chip" id="passengerStatus">Pronto para viajar</span>
+          <button id="btnOpenModalPassenger" class="btn-primary btn-sm" onclick="document.getElementById('modalRegisterPassenger').classList.remove('hidden')"><i class="fa-solid fa-user-plus"></i> + Perfil do Cliente</button>
+          <span class="status-chip" id="passengerStatus">Pronto para viajar 99</span>
         </div>
       </div>
 
-      <!-- Map View -->
-      <div class="map-container">
-        <div id="mapPassenger" class="leaflet-map"></div>
-        
-        <!-- Address Floating Bar -->
+      <div class="map-wrap">
+        <div id="mapPassenger" class="map-container"></div>
+
         <div class="map-controls-floating">
-          <div class="input-group input-group-relative">
-            <i class="fa-solid fa-circle-dot origin-icon"></i>
-            <input type="text" id="inputOrigin" class="address-input" placeholder="Digite a rua e cidade de origem (Coleta)..." value="" autocomplete="off" />
-            <button type="button" class="btn-icon" id="btnSearchOrigin" title="Buscar Origem"><i class="fa-solid fa-magnifying-glass"></i></button>
+          <div class="input-group">
+            <span class="icon" style="color: #10b981;">🟢</span>
+            <input type="text" id="inputOrigin" placeholder="Sua localização atual..." value="MASP - Av. Paulista">
             <div id="suggestionsOrigin" class="autocomplete-dropdown hidden"></div>
           </div>
-          
-          <div class="input-group input-group-relative">
-            <i class="fa-solid fa-location-pin dest-icon"></i>
-            <input type="text" id="inputDestination" class="address-input" placeholder="Digite a rua e cidade de destino (Entrega)..." value="" autocomplete="off" />
-            <button type="button" class="btn-icon" id="btnSearchDest" title="Buscar Destino"><i class="fa-solid fa-magnifying-glass"></i></button>
+
+          <div class="input-group">
+            <span class="icon" style="color: #ef4444;">🔴</span>
+            <input type="text" id="inputDestination" placeholder="Para onde você quer ir?">
             <div id="suggestionsDest" class="autocomplete-dropdown hidden"></div>
           </div>
 
           <div class="quick-chips">
-            <span>Pontos Rápidos:</span>
-            <button type="button" class="chip-btn" onclick="setPresetOrigin('MASP')">📍 MASP</button>
-            <button type="button" class="chip-btn" onclick="setPresetDestination('IBIRAPUERA')">🌳 Ibirapuera</button>
-            <button type="button" class="chip-btn" onclick="setPresetDestination('PAULISTA')">🏬 Paulista</button>
-          </div>
-
-          <div class="map-hint">
-            <small><i class="fa-solid fa-mouse-pointer"></i> <strong>Dica:</strong> Digite o endereço exato para calcular a quilometragem e o valor correto!</small>
+            <button class="chip-btn" onclick="document.getElementById('inputDestination').value='Parque Ibirapuera'; document.getElementById('btnCalculateFare').click();">🌳 Ibirapuera</button>
+            <button class="chip-btn" onclick="document.getElementById('inputDestination').value='Aeroporto de Congonhas'; document.getElementById('btnCalculateFare').click();">✈️ Congonhas</button>
+            <button class="chip-btn" onclick="document.getElementById('inputDestination').value='Praça da Sé - Centro'; document.getElementById('btnCalculateFare').click();">📍 Praça da Sé</button>
           </div>
 
           <button id="btnCalculateFare" class="btn-primary full-width">
-            <i class="fa-solid fa-calculator"></i> Calcular Estimativa de Tarifa
+            <i class="fa-solid fa-calculator"></i> Calcular Estimativa de Tarifa 99
           </button>
         </div>
       </div>
 
-      <!-- Fare Categories & Booking Card -->
-      <div class="booking-card hidden" id="cardBooking">
-        <div id="estimateKmBadge" style="text-align: center;"></div>
-        <h3>Selecione a Modalidade Desejada</h3>
-        <div class="categories-grid" id="categoriesGrid">
-          <!-- Populated by JS -->
-        </div>
+      <!-- CARD ESTIMATIVA DE CATEGORIAS -->
+      <div id="cardBooking" class="booking-card hidden" style="background: #fffdf5; border: 2px solid #fde68a; border-radius: 14px; padding: 16px;">
+        <h3 style="font-size: 1.05rem; font-weight: 800; color: #111827; margin-bottom: 12px;">Selecione a Categoria 99:</h3>
 
-        <div class="payment-method-selector">
-          <label><i class="fa-solid fa-wallet"></i> Forma de Pagamento:</label>
-          <select id="selectPayment">
-            <option value="pix">⚡ PIX Instantâneo</option>
-            <option value="credit_card">💳 Cartão de Crédito / Débito</option>
+        <div id="categoriesGrid" class="categories-grid" style="margin-bottom: 14px;"></div>
+
+        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 14px;">
+          <label style="font-weight: 700; font-size: 0.85rem; color: #111827;">Forma de Pagamento:</label>
+          <select id="selectPayment" style="padding: 8px 12px; border-radius: 8px; border: 1px solid #fde68a; font-weight: 700;">
+            <option value="pix">⚡ PIX</option>
+            <option value="credit_card">💳 Cartão 99</option>
             <option value="cash">💵 Dinheiro ao Motorista</option>
           </select>
         </div>
 
-        <button id="btnRequestRide" class="btn-success full-width pulse">
-          <i class="fa-solid fa-car"></i> Confirmar e Solicitar Viagem / Entrega
+        <button id="btnRequestRide" class="btn-primary full-width" style="padding: 14px; font-size: 1rem;">
+          🚀 SOLICITAR VIAGEM 99
         </button>
-      </div>
-
-      <!-- Live Ride Tracker Card (Active Ride) -->
-      <div class="active-ride-card hidden" id="cardActiveRide">
-        <div class="searching-state" id="stateSearching">
-          <div class="radar-spinner"></div>
-          <h4>Procurando motoristas próximos para sua entrega/corrida...</h4>
-          <p style="color: #f59e0b; font-weight: 600;">O motorista mais próximo que aceitar primeiro irá te atender!</p>
-          <button id="btnAutoMatch" class="btn-primary btn-sm" style="margin-top: 10px;">
-            <i class="fa-solid fa-bolt"></i> Chamada Enviada aos Motoristas
-          </button>
-        </div>
-
-        <div class="matched-driver-info hidden" id="matchedDriverInfo">
-          <div class="driver-profile-header">
-            <div class="avatar"><i class="fa-solid fa-user-tie"></i></div>
-            <div class="details">
-              <h4 id="rideDriverName">Carlos Silva</h4>
-              <p><i class="fa-solid fa-star star"></i> <span id="rideDriverRating">4.9</span> • <span id="rideDriverVehicleType">🚘 Carro</span></p>
-              <div class="vehicle-trust-box">
-                <span class="vehicle-model" id="rideDriverVehicleModel">Toyota Corolla (Vermelho)</span>
-                <span class="plate-badge-official" id="rideDriverPlate">ABC-1D23</span>
-              </div>
-            </div>
-            <div class="action-call">
-              <button class="btn-circle" onclick="showToast('📞 Chamando o motorista...', 'info')" title="Ligar para o Motorista"><i class="fa-solid fa-phone"></i></button>
-            </div>
-          </div>
-          <div class="security-badge-trust">
-            <i class="fa-solid fa-shield-halved"></i> <span>Veículo Verificado e Rastreado em Tempo Real</span>
-          </div>
-
-          <div class="ride-progress-bar">
-            <div class="step" id="stepAccepted"><span>1</span> Aceito</div>
-            <div class="step" id="stepArrived"><span>2</span> No Local</div>
-            <div class="step" id="stepInProgress"><span>3</span> Em Viagem</div>
-            <div class="step" id="stepCompleted"><span>4</span> Finalizado</div>
-          </div>
-
-          <div class="ride-summary-mini">
-            <div><span>Distância:</span> <strong id="rideSummaryKm" style="color: #0284c7; font-weight: 800;">0,0 km</strong></div>
-            <div><span>Valor Total:</span> <strong id="rideSummaryPrice">R$ 18,50</strong></div>
-            <div><span>Pagamento:</span> <span id="rideSummaryPay">PIX</span></div>
-          </div>
-
-          <!-- Chat Box -->
-          <div class="chat-container">
-            <div class="chat-messages" id="chatBox">
-              <div class="msg system">Pedido ativado. Fale com o motorista pelo chat abaixo:</div>
-            </div>
-            <div class="chat-input">
-              <input type="text" id="inputChatMsg" placeholder="Enviar mensagem ao motorista..." />
-              <button id="btnSendChat"><i class="fa-solid fa-paper-plane"></i></button>
-            </div>
-          </div>
-        </div>
       </div>
     </section>
 
@@ -174,7 +100,7 @@
   <div class="modal-overlay hidden" id="modalRegisterPassenger">
     <div class="modal-card">
       <div class="modal-header">
-        <h3><i class="fa-solid fa-user-plus"></i> Cadastrar Perfil de Cliente</h3>
+        <h3><i class="fa-solid fa-user-plus"></i> Cadastrar Perfil de Cliente 99</h3>
         <button class="btn-close" onclick="document.getElementById('modalRegisterPassenger').classList.add('hidden')">&times;</button>
       </div>
       <form id="formRegisterPassenger" class="modal-form" onsubmit="event.preventDefault(); window.handlePassengerRegisterSubmit(event); return false;">
@@ -190,28 +116,19 @@
           <label>Forma de Pagamento Preferida:</label>
           <select id="regPassengerPay">
             <option value="pix">⚡ PIX</option>
-            <option value="credit_card">💳 Cartão de Crédito / Débito</option>
+            <option value="credit_card">💳 Cartão 99</option>
             <option value="cash">💵 Dinheiro ao Motorista</option>
           </select>
         </div>
         <button type="button" onclick="window.handlePassengerRegisterSubmit(event)" class="btn-primary full-width" style="padding: 14px; font-weight: 800;">
-          <i class="fa-solid fa-user-check"></i> Criar Perfil de Cliente
+          <i class="fa-solid fa-user-check"></i> Criar Perfil de Cliente 99
         </button>
       </form>
     </div>
   </div>
 
-  <!-- JS External Libraries & Application Scripts -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <script src="app.js?v=3.0"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const mainLayout = document.getElementById('mainLayout');
-      if (mainLayout) {
-        mainLayout.className = 'main-container mode-single';
-      }
-    });
-  </script>
 </body>
 </html>

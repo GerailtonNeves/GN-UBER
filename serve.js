@@ -16,6 +16,7 @@ const MIME_TYPES = {
 };
 
 const server = http.createServer((req, res) => {
+  // Strip query parameters like ?v=3.0 so Windows file paths resolve cleanly
   const cleanUrl = req.url.split('?')[0];
   let filePath = path.join(PUBLIC_DIR, cleanUrl === '/' ? 'index.html' : cleanUrl);
   const ext = path.extname(filePath).toLowerCase();
@@ -24,7 +25,7 @@ const server = http.createServer((req, res) => {
   fs.readFile(filePath, (err, content) => {
     if (err) {
       if (err.code === 'ENOENT') {
-        res.writeHead(404, { 'Content-Type': 'text/html' });
+        res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end('<h1>404 Página Não Encontrada</h1>');
       } else {
         res.writeHead(500);
@@ -39,7 +40,7 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
   console.log(`====================================================`);
-  console.log(`📱 FRONTEND UBERFLOW RODANDO NA PORTA ${PORT}`);
+  console.log(`🟡 FRONTEND 99 SUPER-APP RODANDO NA PORTA ${PORT}`);
   console.log(`🌐 Acesse no navegador: http://localhost:${PORT}`);
   console.log(`====================================================`);
 });
