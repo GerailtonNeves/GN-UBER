@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=3.0">
 </head>
 <body>
 
@@ -113,7 +113,7 @@
         <!-- Tariff & Platform Controls Form -->
         <div class="admin-box">
           <h3><i class="fa-solid fa-sliders"></i> Preços & Regras de Tarifa</h3>
-          <form id="formTariffs" class="tariffs-form">
+          <form id="formTariffs" class="tariffs-form" onsubmit="event.preventDefault(); window.handleTariffsSubmit(event); return false;">
             <div class="form-group">
               <label>Preço Base (R$):</label>
               <input type="number" step="0.50" id="cfgBasePrice" value="6.00" required>
@@ -139,7 +139,7 @@
                 <option value="2.0">2.0x (Madrugada / Eventos)</option>
               </select>
             </div>
-            <button type="submit" class="btn-primary full-width">
+            <button type="button" onclick="window.handleTariffsSubmit(event)" class="btn-primary full-width">
               <i class="fa-solid fa-floppy-disk"></i> Salvar Novas Tarifas
             </button>
           </form>
@@ -248,7 +248,7 @@
   <!-- JS External Libraries & Application Scripts -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-  <script src="app.js"></script>
+  <script src="app.js?v=3.0"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const mainLayout = document.getElementById('mainLayout');

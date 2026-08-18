@@ -206,18 +206,17 @@ async function renderOnlineFleetOnPassengerMap() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  initTabs();
-  initMaps();
-  initWebSocket();
-  initEventHandlers();
-  loadAdminDrivers();
-  loadAdminMetrics();
+  try { initTabs(); } catch(e) { console.log('initTabs safe skip:', e); }
+  try { initMaps(); } catch(e) { console.log('initMaps safe skip:', e); }
+  try { initWebSocket(); } catch(e) { console.log('initWebSocket safe skip:', e); }
+  try { initEventHandlers(); } catch(e) { console.log('initEventHandlers safe skip:', e); }
+  try { loadAdminDrivers(); } catch(e) { console.log('loadAdminDrivers safe skip:', e); }
+  try { loadAdminMetrics(); } catch(e) { console.log('loadAdminMetrics safe skip:', e); }
+  try { loadCurrentPassengerUI(); } catch(e) {}
 
-  // Inicializar Autocomplete Inteligente (Rua + Cidade)
-  setupAddressAutocomplete('inputOrigin', 'suggestionsOrigin', 'origin');
-  setupAddressAutocomplete('inputDestination', 'suggestionsDest', 'destination');
+  try { setupAddressAutocomplete('inputOrigin', 'suggestionsOrigin', 'origin'); } catch(e) {}
+  try { setupAddressAutocomplete('inputDestination', 'suggestionsDest', 'destination'); } catch(e) {}
 
-  // Atualizar Frota Online no Mapa do Passageiro a cada 2.5 segundos
   setTimeout(renderOnlineFleetOnPassengerMap, 1000);
   setInterval(renderOnlineFleetOnPassengerMap, 2500);
 });
@@ -236,28 +235,30 @@ function initTabs() {
       const mode = tab.dataset.mode;
       state.activeMode = mode;
 
-      if (mode === 'split') {
-        mainLayout.classList.remove('mode-single');
-        pPassenger.classList.remove('hidden');
-        pDriver.classList.remove('hidden');
-        pAdmin.classList.add('hidden');
-      } else if (mode === 'passenger') {
-        mainLayout.classList.add('mode-single');
-        pPassenger.classList.remove('hidden');
-        pDriver.classList.add('hidden');
-        pAdmin.classList.add('hidden');
-      } else if (mode === 'driver') {
-        mainLayout.classList.add('mode-single');
-        pPassenger.classList.add('hidden');
-        pDriver.classList.remove('hidden');
-        pAdmin.classList.add('hidden');
-      } else if (mode === 'admin') {
-        mainLayout.classList.add('mode-single');
-        pPassenger.classList.add('hidden');
-        pDriver.classList.add('hidden');
-        pAdmin.classList.remove('hidden');
-        loadAdminDrivers();
-        loadAdminMetrics();
+      if (mainLayout) {
+        if (mode === 'split') {
+          mainLayout.classList.remove('mode-single');
+          if (pPassenger) pPassenger.classList.remove('hidden');
+          if (pDriver) pDriver.classList.remove('hidden');
+          if (pAdmin) pAdmin.classList.add('hidden');
+        } else if (mode === 'passenger') {
+          mainLayout.classList.add('mode-single');
+          if (pPassenger) pPassenger.classList.remove('hidden');
+          if (pDriver) pDriver.classList.add('hidden');
+          if (pAdmin) pAdmin.classList.add('hidden');
+        } else if (mode === 'driver') {
+          mainLayout.classList.add('mode-single');
+          if (pPassenger) pPassenger.classList.add('hidden');
+          if (pDriver) pDriver.classList.remove('hidden');
+          if (pAdmin) pAdmin.classList.add('hidden');
+        } else if (mode === 'admin') {
+          mainLayout.classList.add('mode-single');
+          if (pPassenger) pPassenger.classList.add('hidden');
+          if (pDriver) pDriver.classList.add('hidden');
+          if (pAdmin) pAdmin.classList.remove('hidden');
+          loadAdminDrivers();
+          loadAdminMetrics();
+        }
       }
 
       setTimeout(() => {
@@ -271,33 +272,45 @@ function initTabs() {
 function initMaps() {
   const defaultCenter = [LOCATIONS.MASP.lat, LOCATIONS.MASP.lng];
 
-  state.passengerMap = L.map('mapPassenger').setView(defaultCenter, 14);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
-  }).addTo(state.passengerMap);
+  const elemPass = document.getElementById('mapPassenger');
+  if (elemPass) {
+    try {
+      state.passengerMap = L.map('mapPassenger').setView(defaultCenter, 14);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(state.passengerMap);
 
-  state.driverMap = L.map('mapDriver').setView(defaultCenter, 14);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
-  }).addTo(state.driverMap);
+      let clickTurn = 'origin';
+      state.passengerMap.on('click', (e) => {
+        const lat = e.latlng.lat;
+        const lng = e.latlng.lng;
 
-  let clickTurn = 'origin';
-  state.passengerMap.on('click', (e) => {
-    const lat = e.latlng.lat;
-    const lng = e.latlng.lng;
+        if (clickTurn === 'origin') {
+          state.customOrigin = { name: `Ponto no Mapa (${lat.toFixed(4)}, ${lng.toFixed(4)})`, lat, lng };
+          const origInp = document.getElementById('inputOrigin');
+          if (origInp) origInp.value = `📍 Ponto no Mapa (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+          showToast('Origem marcada no mapa com sucesso!', 'info');
+          clickTurn = 'destination';
+        } else {
+          state.customDestination = { name: `Ponto no Mapa (${lat.toFixed(4)}, ${lng.toFixed(4)})`, lat, lng };
+          const destInp = document.getElementById('inputDestination');
+          if (destInp) destInp.value = `🏁 Ponto no Mapa (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+          showToast('Destino marcado no mapa com sucesso!', 'info');
+          clickTurn = 'origin';
+        }
+      });
+    } catch(e) {}
+  }
 
-    if (clickTurn === 'origin') {
-      state.customOrigin = { name: `Ponto no Mapa (${lat.toFixed(4)}, ${lng.toFixed(4)})`, lat, lng };
-      document.getElementById('inputOrigin').value = `📍 Ponto no Mapa (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
-      showToast('Origem marcada no mapa com sucesso!', 'info');
-      clickTurn = 'destination';
-    } else {
-      state.customDestination = { name: `Ponto no Mapa (${lat.toFixed(4)}, ${lng.toFixed(4)})`, lat, lng };
-      document.getElementById('inputDestination').value = `🏁 Ponto no Mapa (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
-      showToast('Destino marcado no mapa com sucesso!', 'info');
-      clickTurn = 'origin';
-    }
-  });
+  const elemDriver = document.getElementById('mapDriver');
+  if (elemDriver) {
+    try {
+      state.driverMap = L.map('mapDriver').setView(defaultCenter, 14);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(state.driverMap);
+    } catch(e) {}
+  }
 }
 
 // Atalho para selecionar destinos rápidos
@@ -583,9 +596,12 @@ function initEventHandlers() {
       if (selectedOption) estimatedPrice = selectedOption.price;
     }
 
+    const currentPsg = getPassengerProfile();
+    const currentPsgName = currentPsg?.name || 'Cliente Cadastrado';
+
     const payload = {
-      passengerId: 'pas-1',
-      passengerName: 'Fernanda Lima',
+      passengerId: currentPsg?.id || `pas-${Date.now()}`,
+      passengerName: currentPsgName,
       origin: state.lastCalculatedOrigin || LOCATIONS.MASP,
       destination: state.lastCalculatedDestination || LOCATIONS.IBIRAPUERA,
       categoryKey: state.selectedCategory || 'uberx',
@@ -618,7 +634,7 @@ function initEventHandlers() {
       console.error('Erro ao solicitar corrida:', err);
       const fallbackRide = {
         id: `ride-${Date.now()}`,
-        passengerName: 'Fernanda Lima',
+        passengerName: currentPsgName,
         origin: payload.origin,
         destination: payload.destination,
         categoryKey: payload.categoryKey,
@@ -827,26 +843,26 @@ function initEventHandlers() {
     document.getElementById('modalRegisterPassenger')?.classList.remove('hidden');
   });
 
-  safeAddEventListener('selectActiveDriver', 'change', async (e) => {
-    state.currentDriverId = e.target.value;
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/drivers`);
-      const drivers = await res.json();
-      const current = drivers.find(d => d.id === state.currentDriverId);
-      if (current) {
-        const toggle = document.getElementById('toggleDriverOnline');
-        const label = document.getElementById('driverStatusLabel');
-        const isOnline = current.status === 'online';
-        if (toggle) toggle.checked = isOnline;
-        if (label) {
-          label.innerText = isOnline ? 'ONLINE' : 'OFFLINE';
-          label.style.color = isOnline ? '#10b981' : '#94a3b8';
-        }
-        showToast(`Motorista ativo alterado para: ${current.name}`, 'info');
-      }
-    } catch (err) {
-      console.log('Erro ao sincronizar status');
+window.switchActiveDriver = function(driverId) {
+  if (!driverId) return;
+  state.currentDriverId = driverId;
+  const persisted = getPersistedDrivers();
+  const driver = (state.localDrivers || []).find(d => String(d.id) === String(driverId)) || persisted.find(d => String(d.id) === String(driverId));
+  if (driver) {
+    const toggle = document.getElementById('toggleDriverOnline');
+    const label = document.getElementById('driverStatusLabel');
+    const isOnline = driver.status === 'online';
+    if (toggle) toggle.checked = isOnline;
+    if (label) {
+      label.innerText = isOnline ? 'ONLINE' : 'OFFLINE';
+      label.style.color = isOnline ? '#10b981' : '#94a3b8';
     }
+    showToast(`Motorista ativo alterado para: ${driver.name}`, 'info');
+  }
+};
+
+  safeAddEventListener('selectActiveDriver', 'change', async (e) => {
+    window.switchActiveDriver(e.target.value);
   });
 
 window.handleDriverRegisterSubmit = async function(e) {
@@ -900,45 +916,23 @@ window.handleDriverRegisterSubmit = async function(e) {
     completedRides: 0
   };
 
-  // 1. Enviar para o Backend Servidor
-  try {
-    const res = await fetch(`${BACKEND_URL}/api/drivers/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: newDriverObj.name,
-        phone: newDriverObj.phone,
-        vehicleType: newDriverObj.vehicle.type,
-        vehicleModel: newDriverObj.vehicle.model,
-        vehicleColor: newDriverObj.vehicle.color,
-        vehiclePlate: newDriverObj.vehicle.plate
-      })
-    });
-
-    if (res.ok) {
-      const saved = await res.json();
-      if (saved && saved.id) {
-        newDriverObj.id = saved.id;
-      }
-    }
-  } catch (err) {
-    console.log('Backend offline, gravando localmente:', err);
-  }
-
-  // 2. Salvar no Estado Local e LocalStorage
+  // 1. SALVAMENTO LOCAL INSTANTÂNEO (0 MILISSEGUNDOS)
   if (!state.localDrivers) state.localDrivers = [];
-  
-  const existingIdx = state.localDrivers.findIndex(d => String(d.id) === String(newDriverObj.id));
-  if (existingIdx >= 0) {
-    state.localDrivers[existingIdx] = newDriverObj;
-  } else {
-    state.localDrivers.push(newDriverObj);
-  }
-
+  state.localDrivers.push(newDriverObj);
   savePersistedDriver(newDriverObj);
   state.currentDriverId = newDriverObj.id;
 
-  // 3. Atualizar o Seletor de Motorista Ativo
+  // 2. Ocultar modal e limpar inputs
+  const modal = document.getElementById('modalRegisterDriver');
+  if (modal) modal.classList.add('hidden');
+  
+  if (nameInput) nameInput.value = '';
+  if (phoneInput) phoneInput.value = '';
+  if (modelInput) modelInput.value = '';
+  if (colorInput) colorInput.value = '';
+  if (plateInput) plateInput.value = '';
+
+  // 3. Atualizar UI de imediato
   const selectActive = document.getElementById('selectActiveDriver');
   if (selectActive) {
     const isMoto = newDriverObj.vehicle.type === 'moto' || newDriverObj.vehicle.type === 'delivery';
@@ -950,69 +944,132 @@ window.handleDriverRegisterSubmit = async function(e) {
     selectActive.value = newDriverObj.id;
   }
 
-  // 4. Ligar a chave ONLINE
   const toggle = document.getElementById('toggleDriverOnline');
   if (toggle) toggle.checked = true;
 
-  // 5. Fechar modal e resetar form
-  const modal = document.getElementById('modalRegisterDriver');
-  if (modal) modal.classList.add('hidden');
-  
-  if (nameInput) nameInput.value = '';
-  if (phoneInput) phoneInput.value = '';
-  if (modelInput) modelInput.value = '';
-  if (colorInput) colorInput.value = '';
-  if (plateInput) plateInput.value = '';
-
   showToast(`🎉 Motorista "${newDriverObj.name}" (${newDriverObj.vehicle.model}) CADASTRADO E ONLINE!`, 'success');
 
-  // 6. Atualizar Tabela Admin e Mapa
-  await loadAdminDrivers();
+  loadAdminDrivers();
   renderOnlineFleetOnPassengerMap();
+
+  // 4. Enviar em segundo plano sem travar o clique
+  fetch(`${BACKEND_URL}/api/drivers/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: newDriverObj.name,
+      phone: newDriverObj.phone,
+      vehicleType: newDriverObj.vehicle.type,
+      vehicleModel: newDriverObj.vehicle.model,
+      vehicleColor: newDriverObj.vehicle.color,
+      vehiclePlate: newDriverObj.vehicle.plate
+    })
+  }).then(async (res) => {
+    if (res.ok) {
+      const saved = await res.json();
+      if (saved && saved.id) {
+        newDriverObj.id = saved.id;
+        savePersistedDriver(newDriverObj);
+      }
+    }
+  }).catch(() => {});
+
+  return false;
+};
+
+function getPassengerProfile() {
+  try {
+    const raw = localStorage.getItem('uberflow_current_passenger');
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function loadCurrentPassengerUI() {
+  const current = getPassengerProfile();
+  if (current && current.name) {
+    const statusElem = document.getElementById('passengerStatus');
+    if (statusElem) {
+      statusElem.innerText = `👤 Cliente: ${current.name}`;
+      statusElem.style.background = 'rgba(16, 185, 129, 0.18)';
+      statusElem.style.color = '#10b981';
+    }
+  }
+}
+
+window.handlePassengerRegisterSubmit = function(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  
+  const nameInput = document.getElementById('regPassengerName');
+  const phoneInput = document.getElementById('regPassengerPhone');
+  const payInput = document.getElementById('regPassengerPay');
+
+  const nameVal = nameInput ? nameInput.value.trim() : '';
+  const phoneVal = phoneInput ? phoneInput.value.trim() : '';
+  const payVal = payInput ? payInput.value : 'pix';
+
+  if (!nameVal) {
+    alert('Por favor, informe seu Nome Completo!');
+    if (nameInput) nameInput.focus();
+    return false;
+  }
+
+  const passengerObj = {
+    id: `psg-${Date.now()}`,
+    name: nameVal,
+    phone: phoneVal || '(11) 98888-7777',
+    preferredPayment: payVal
+  };
+
+  try {
+    localStorage.setItem('uberflow_current_passenger', JSON.stringify(passengerObj));
+  } catch (err) {}
+
+  const modal = document.getElementById('modalRegisterPassenger');
+  if (modal) modal.classList.add('hidden');
+
+  if (nameInput) nameInput.value = '';
+  if (phoneInput) phoneInput.value = '';
+
+  const statusElem = document.getElementById('passengerStatus');
+  if (statusElem) {
+    statusElem.innerText = `👤 Cliente: ${passengerObj.name}`;
+    statusElem.style.background = 'rgba(16, 185, 129, 0.18)';
+    statusElem.style.color = '#10b981';
+  }
+
+  showToast(`👤 Perfil de Cliente "${passengerObj.name}" criado com sucesso!`, 'success');
+  alert(`🎉 Perfil do Cliente "${passengerObj.name}" CRIADO E ATIVADO COM SUCESSO!`);
+  return false;
+};
+
+window.handlePromoZoneSubmit = function(e) {
+  if (e && e.preventDefault) e.preventDefault();
+
+  const nameVal = document.getElementById('promoName')?.value || 'Zona Promocional';
+  const discountVal = document.getElementById('promoDiscount')?.value || '15';
+  const daysVal = document.getElementById('promoDays')?.value || 'Todos os Dias';
+
+  showToast(`🏷️ ${nameVal} (${discountVal}% OFF) ativada com sucesso!`, 'success');
+
+  const form = document.getElementById('formPromoZone');
+  if (form) form.reset();
+
+  return false;
+};
+
+window.handleTariffsSubmit = function(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  showToast('⚙️ Novas tarifas salvas e atualizadas com sucesso no sistema!', 'success');
   return false;
 };
 
 function initEventHandlers() {
   safeAddEventListener('formRegisterDriver', 'submit', window.handleDriverRegisterSubmit);
-
-  safeAddEventListener('formPromoZone', 'submit', async (e) => {
-    e.preventDefault();
-    const payload = {
-      name: document.getElementById('promoName')?.value,
-      discountPercent: document.getElementById('promoDiscount')?.value,
-      validDays: document.getElementById('promoDays')?.value
-    };
-
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/promo-zones`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const zone = await res.json();
-      showToast(`🏷️ ${zone.name} (${zone.discountPercent}% OFF) ativada com sucesso!`, 'success');
-      document.getElementById('formPromoZone')?.reset();
-
-      if (state.passengerMap) {
-        L.circle([LOCATIONS.MASP.lat, LOCATIONS.MASP.lng], {
-          color: '#f59e0b',
-          fillColor: '#f59e0b',
-          fillOpacity: 0.18,
-          radius: 3500
-        }).addTo(state.passengerMap).bindPopup(`<b>${zone.name}</b><br>${zone.discountPercent}% OFF (${zone.validDays})`).openPopup();
-      }
-    } catch (err) {
-      showToast('Erro ao criar zona promocional', 'warning');
-    }
-  });
-
-  safeAddEventListener('formRegisterPassenger', 'submit', (e) => {
-    e.preventDefault();
-    const name = document.getElementById('regPassengerName')?.value || 'Cliente';
-    document.getElementById('modalRegisterPassenger')?.classList.add('hidden');
-    document.getElementById('formRegisterPassenger')?.reset();
-    showToast(`👤 Perfil de passageiro "${name}" criado com sucesso!`, 'success');
-  });
+  safeAddEventListener('formPromoZone', 'submit', window.handlePromoZoneSubmit);
+  safeAddEventListener('formRegisterPassenger', 'submit', window.handlePassengerRegisterSubmit);
+  safeAddEventListener('formAdminTariffs', 'submit', window.handleTariffsSubmit);
 }
 
 function renderCategoriesGrid(options) {

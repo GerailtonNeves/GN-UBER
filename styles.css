@@ -863,18 +863,31 @@ input:checked + .slider:before { transform: translateX(22px); }
 
 .admin-body-layout {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: 1fr;
   gap: 16px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@media (min-width: 1025px) {
+  .admin-body-layout {
+    grid-template-columns: 2fr 1fr;
+  }
 }
 
 .admin-box {
   background: var(--bg-dark);
   border: 1px solid var(--border-color);
   border-radius: 14px;
-  padding: 18px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
   gap: 14px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .admin-box h3 { font-size: 1rem; font-weight: 700; }
@@ -971,13 +984,35 @@ html, body {
   max-width: 100vw;
   overflow-x: hidden;
   width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 .table-responsive {
   width: 100%;
+  max-width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   margin-bottom: 10px;
+  box-sizing: border-box;
+}
+
+.admin-body-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@media (min-width: 1025px) {
+  .admin-metrics-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .admin-body-layout {
+    grid-template-columns: 2fr 1fr;
+  }
 }
 
 @media (max-width: 1024px) {
@@ -987,6 +1022,32 @@ html, body {
   .admin-body-layout {
     grid-template-columns: 1fr;
   }
+}
+
+.admin-box {
+  background: var(--bg-dark);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.data-table th, .data-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
 }
 
 @media (max-width: 768px) {
@@ -1084,11 +1145,25 @@ html, body {
   }
 
   .admin-metrics-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .metric-card {
+    padding: 10px;
+  }
+
+  .metric-card .number {
+    font-size: 1.1rem;
   }
 
   .data-table {
-    min-width: 500px;
+    min-width: 100%;
+    font-size: 0.72rem;
+  }
+
+  .data-table th, .data-table td {
+    padding: 6px 6px;
   }
 
   .modal-card {
@@ -1102,6 +1177,9 @@ html, body {
 }
 
 @media (max-width: 480px) {
+  .admin-metrics-grid {
+    grid-template-columns: 1fr;
+  }
   .app-header .logo-text span {
     font-size: 1.1rem;
   }
