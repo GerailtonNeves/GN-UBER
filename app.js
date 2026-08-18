@@ -1052,7 +1052,62 @@ function startDriverMovementSimulation(ride) {
   }, 1500);
 }
 
+window.getDriverPaymentPrefs = function(driverId) {
+  const targetId = driverId || state.currentDriverId || 'drv-1';
+  try {
+    const raw = localStorage.getItem(`uberflow_payment_prefs_${targetId}`);
+    return raw ? JSON.parse(raw) : { pix: true, credit_card: true, cash: true };
+  } catch(e) {
+    return { pix: true, credit_card: true, cash: true };
+  }
+};
+
+window.saveDriverPaymentPrefs = function() {
+  const targetId = state.currentDriverId || 'drv-1';
+  const prefs = {
+    pix: document.getElementById('prefPayPix')?.checked ?? true,
+    credit_card: document.getElementById('prefPayCard')?.checked ?? true,
+    cash: document.getElementById('prefPayCash')?.checked ?? true
+  };
+  localStorage.setItem(`uberflow_payment_prefs_${targetId}`, JSON.stringify(prefs));
+  showToast('💳 Preferências de formas de pagamento do motorista salvas!', 'success');
+};
+
+window.setDriverPaymentPrefsAll = function(val) {
+  if (document.getElementById('prefPayPix')) document.getElementById('prefPayPix').checked = val;
+  if (document.getElementById('prefPayCard')) document.getElementById('prefPayCard').checked = val;
+  if (document.getElementById('prefPayCash')) document.getElementById('prefPayCash').checked = val;
+  window.saveDriverPaymentPrefs();
+};
+
+window.loadDriverPaymentPrefs = function(driverId) {
+  const prefs = window.getDriverPaymentPrefs(driverId);
+  if (document.getElementById('prefPayPix')) document.getElementById('prefPayPix').checked = !!prefs.pix;
+  if (document.getElementById('prefPayCard')) document.getElementById('prefPayCard').checked = !!prefs.credit_card;
+  if (document.getElementById('prefPayCash')) document.getElementById('prefPayCash').checked = !!prefs.cash;
+};
+
+window.switchActiveDriver = function(driverId) {
+  if (!driverId) return;
+  state.currentDriverId = driverId;
+  window.loadDriverPaymentPrefs(driverId);
+  showToast(`🚕 Alternado para o motorista ativo: ID #${driverId}`, 'info');
+};
+
 function showRideDispatchModal(ride) {
+  const activeDriverId = state.currentDriverId || 'drv-1';
+  const prefs = window.getDriverPaymentPrefs(activeDriverId);
+
+  const payMethod = ride.paymentMethod || 'pix';
+  const acceptsPay = (payMethod === 'pix' && prefs.pix) ||
+                     (payMethod === 'credit_card' && prefs.credit_card) ||
+                     ((payMethod === 'cash' || payMethod === 'dinheiro') && prefs.cash);
+
+  if (!acceptsPay) {
+    console.log(`Motorista #${activeDriverId} desativou o recebimento por ${payMethod}. Oferta ignorada.`);
+    return;
+  }
+
   state.pendingDispatchRide = ride;
   
   // Tocar Sirene de Chamada de Emergência por no máximo 5 segundos (ou até o aceite)

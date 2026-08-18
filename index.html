@@ -112,7 +112,7 @@
           <label><i class="fa-solid fa-wallet"></i> Forma de Pagamento:</label>
           <select id="selectPayment">
             <option value="pix">⚡ PIX Instantâneo</option>
-            <option value="credit_card">💳 Cartão de Crédito (Mastercard **** 4321)</option>
+            <option value="credit_card">💳 Cartão de Crédito / Débito</option>
             <option value="cash">💵 Dinheiro ao Motorista</option>
           </select>
         </div>
@@ -180,21 +180,26 @@
     </section>
 
     <!-- DRIVER APP SECTION -->
-    <section class="app-panel driver-panel" id="panelDriver">
+    <section class="app-panel" id="panelDriver">
       <div class="panel-header">
-        <h2><i class="fa-solid fa-car"></i> Painel do Motorista / Moto</h2>
+        <h2><i class="fa-solid fa-taxi icon-driver"></i> Painel do Motorista / Moto</h2>
+        
         <div class="header-actions">
-          <select id="selectActiveDriver" class="driver-select">
-            <option value="">Aguardando cadastro de motorista...</option>
+          <button class="btn-primary btn-sm" onclick="document.getElementById('modalRegisterDriver').classList.remove('hidden')">
+            <i class="fa-solid fa-user-plus"></i> + Nova Moto/Carro
+          </button>
+          
+          <select id="selectActiveDriver" class="driver-select" onchange="window.switchActiveDriver(this.value)">
+            <!-- Populated dynamically -->
           </select>
-          <button id="btnTestSound" class="btn-secondary btn-sm" onclick="playSingleMelodicChime(); showToast('🔔 Toque de chamada reproduzido com sucesso!', 'info');" title="Testar Som da Chamada"><i class="fa-solid fa-bell"></i> Testar Som</button>
-          <button id="btnOpenModalDriver" class="btn-secondary btn-sm"><i class="fa-solid fa-plus"></i> Nova Moto/Carro</button>
+          
           <div class="toggle-online">
-            <span id="driverStatusLabel">OFFLINE</span>
+            <span>OFFLINE</span>
             <label class="switch">
               <input type="checkbox" id="toggleDriverOnline">
-              <span class="slider round"></span>
+              <span class="slider"></span>
             </label>
+            <span style="color: var(--success);">ONLINE</span>
           </div>
         </div>
       </div>
@@ -206,6 +211,30 @@
 
       <!-- Driver Controls & Earnings Box -->
       <div class="driver-dashboard-footer">
+        <!-- Caixa de Preferências de Formas de Pagamento do Motorista -->
+        <div class="driver-payment-preferences" style="background: #ffffff; border: 1px solid var(--border-color); padding: 12px 16px; border-radius: 14px; margin-bottom: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.03);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <strong style="color: #0f172a; font-size: 0.85rem; font-weight: 800; display: flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-wallet" style="color: var(--primary);"></i> Formas de Pagamento que Aceito Receber:
+            </strong>
+            <div>
+              <button type="button" class="chip-btn" onclick="window.setDriverPaymentPrefsAll(true)">Marcar Todos</button>
+              <button type="button" class="chip-btn" onclick="window.setDriverPaymentPrefsAll(false)">Desmarcar</button>
+            </div>
+          </div>
+          <div style="display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.82rem; font-weight: 700; color: #0f172a;">
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+              <input type="checkbox" id="prefPayPix" checked onchange="window.saveDriverPaymentPrefs()"> ⚡ PIX
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+              <input type="checkbox" id="prefPayCard" checked onchange="window.saveDriverPaymentPrefs()"> 💳 Cartão
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+              <input type="checkbox" id="prefPayCash" checked onchange="window.saveDriverPaymentPrefs()"> 💵 Dinheiro
+            </label>
+          </div>
+        </div>
+
         <div class="earnings-summary">
           <div class="earning-box">
             <span class="label">Ganhos do Dia</span>
