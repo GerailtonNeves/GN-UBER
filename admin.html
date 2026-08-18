@@ -208,7 +208,7 @@
         <h3><i class="fa-solid fa-id-card"></i> Cadastrar Novo Motorista ou Moto</h3>
         <button class="btn-close" onclick="document.getElementById('modalRegisterDriver').classList.add('hidden')">&times;</button>
       </div>
-      <form id="formRegisterDriver" class="modal-form">
+      <form id="formRegisterDriver" class="modal-form" onsubmit="event.preventDefault(); window.handleDriverRegisterSubmit(event); return false;">
         <div class="form-group">
           <label>Nome Completo:</label>
           <input type="text" id="regDriverName" placeholder="Ex: João da Silva" required>
@@ -238,7 +238,7 @@
           <label>Placa Oficial:</label>
           <input type="text" id="regDriverPlate" placeholder="Ex: ABC-1234" required>
         </div>
-        <button type="submit" class="btn-primary full-width">
+        <button type="button" onclick="window.handleDriverRegisterSubmit(event)" class="btn-primary full-width" style="padding: 14px; font-weight: 800; font-size: 0.95rem;">
           <i class="fa-solid fa-check"></i> Cadastrar e Ficar ONLINE
         </button>
       </form>

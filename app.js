@@ -849,68 +849,131 @@ function initEventHandlers() {
     }
   });
 
-  safeAddEventListener('formRegisterDriver', 'submit', async (e) => {
-    e.preventDefault();
-    
-    const nameVal = document.getElementById('regDriverName')?.value.trim() || 'Motorista Cadastrado';
-    const phoneVal = document.getElementById('regDriverPhone')?.value.trim() || '(11) 99999-9999';
-    const typeVal = document.getElementById('regDriverType')?.value || 'uberx';
-    const modelVal = document.getElementById('regDriverModel')?.value.trim() || 'Veículo Cadastrado';
-    const colorVal = document.getElementById('regDriverColor')?.value.trim() || 'Preto';
-    const plateVal = document.getElementById('regDriverPlate')?.value.trim() || 'ABC-1234';
+window.handleDriverRegisterSubmit = async function(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  
+  const nameInput = document.getElementById('regDriverName');
+  const phoneInput = document.getElementById('regDriverPhone');
+  const typeInput = document.getElementById('regDriverType');
+  const modelInput = document.getElementById('regDriverModel');
+  const colorInput = document.getElementById('regDriverColor');
+  const plateInput = document.getElementById('regDriverPlate');
 
-    const newDriverObj = {
-      id: `drv-${Date.now()}`,
-      name: nameVal,
-      phone: phoneVal,
-      rating: 5.0,
-      status: 'online',
-      verified: true,
-      vehicle: {
-        model: modelVal,
-        color: colorVal,
-        plate: plateVal,
-        type: typeVal
-      },
-      location: { lat: -23.561684 + (Math.random() - 0.5) * 0.01, lng: -46.655981 + (Math.random() - 0.5) * 0.01, heading: 0 },
-      totalEarnings: 0,
-      completedRides: 0
-    };
+  const nameVal = nameInput ? nameInput.value.trim() : '';
+  const phoneVal = phoneInput ? phoneInput.value.trim() : '';
+  const typeVal = typeInput ? typeInput.value : 'uberx';
+  const modelVal = modelInput ? modelInput.value.trim() : '';
+  const colorVal = colorInput ? colorInput.value.trim() : '';
+  const plateVal = plateInput ? plateInput.value.trim() : '';
 
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/drivers/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: newDriverObj.name,
-          phone: newDriverObj.phone,
-          vehicleType: newDriverObj.vehicle.type,
-          vehicleModel: newDriverObj.vehicle.model,
-          vehicleColor: newDriverObj.vehicle.color,
-          vehiclePlate: newDriverObj.vehicle.plate
-        })
-      });
+  if (!nameVal) {
+    showToast('Por favor, informe o Nome Completo do motorista!', 'warning');
+    if (nameInput) nameInput.focus();
+    return false;
+  }
+  if (!modelVal) {
+    showToast('Por favor, informe o Modelo do Veículo!', 'warning');
+    if (modelInput) modelInput.focus();
+    return false;
+  }
+  if (!plateVal) {
+    showToast('Por favor, informe a Placa Oficial do Veículo!', 'warning');
+    if (plateInput) plateInput.focus();
+    return false;
+  }
 
-      if (res.ok) {
-        const saved = await res.json();
-        if (saved && saved.id) newDriverObj.id = saved.id;
+  const newDriverObj = {
+    id: `drv-${Date.now()}`,
+    name: nameVal,
+    phone: phoneVal || '(11) 99999-9999',
+    rating: 5.0,
+    status: 'online',
+    verified: true,
+    vehicle: {
+      model: modelVal,
+      color: colorVal || 'Preto',
+      plate: plateVal,
+      type: typeVal
+    },
+    location: { lat: -23.561684 + (Math.random() - 0.5) * 0.01, lng: -46.655981 + (Math.random() - 0.5) * 0.01, heading: 0 },
+    totalEarnings: 0,
+    completedRides: 0
+  };
+
+  // 1. Enviar para o Backend Servidor
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/drivers/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: newDriverObj.name,
+        phone: newDriverObj.phone,
+        vehicleType: newDriverObj.vehicle.type,
+        vehicleModel: newDriverObj.vehicle.model,
+        vehicleColor: newDriverObj.vehicle.color,
+        vehiclePlate: newDriverObj.vehicle.plate
+      })
+    });
+
+    if (res.ok) {
+      const saved = await res.json();
+      if (saved && saved.id) {
+        newDriverObj.id = saved.id;
       }
-    } catch (err) {
-      console.log('Gravado localmente:', err);
     }
+  } catch (err) {
+    console.log('Backend offline, gravando localmente:', err);
+  }
 
-    if (!state.localDrivers) state.localDrivers = [];
+  // 2. Salvar no Estado Local e LocalStorage
+  if (!state.localDrivers) state.localDrivers = [];
+  
+  const existingIdx = state.localDrivers.findIndex(d => String(d.id) === String(newDriverObj.id));
+  if (existingIdx >= 0) {
+    state.localDrivers[existingIdx] = newDriverObj;
+  } else {
     state.localDrivers.push(newDriverObj);
-    savePersistedDriver(newDriverObj);
-    state.currentDriverId = newDriverObj.id;
+  }
 
-    document.getElementById('modalRegisterDriver')?.classList.add('hidden');
-    document.getElementById('formRegisterDriver')?.reset();
+  savePersistedDriver(newDriverObj);
+  state.currentDriverId = newDriverObj.id;
 
-    showToast(`🎉 Motorista "${newDriverObj.name}" (${newDriverObj.vehicle.model}) CADASTRADO E APROVADO COM SUCESSO!`, 'success');
-    await loadAdminDrivers();
-    renderOnlineFleetOnPassengerMap();
-  });
+  // 3. Atualizar o Seletor de Motorista Ativo
+  const selectActive = document.getElementById('selectActiveDriver');
+  if (selectActive) {
+    const isMoto = newDriverObj.vehicle.type === 'moto' || newDriverObj.vehicle.type === 'delivery';
+    const opt = document.createElement('option');
+    opt.value = newDriverObj.id;
+    opt.innerText = `${isMoto ? '🏍️' : '🚗'} ${newDriverObj.name} (${newDriverObj.vehicle.model}) ✅ Aprovado`;
+    opt.selected = true;
+    selectActive.appendChild(opt);
+    selectActive.value = newDriverObj.id;
+  }
+
+  // 4. Ligar a chave ONLINE
+  const toggle = document.getElementById('toggleDriverOnline');
+  if (toggle) toggle.checked = true;
+
+  // 5. Fechar modal e resetar form
+  const modal = document.getElementById('modalRegisterDriver');
+  if (modal) modal.classList.add('hidden');
+  
+  if (nameInput) nameInput.value = '';
+  if (phoneInput) phoneInput.value = '';
+  if (modelInput) modelInput.value = '';
+  if (colorInput) colorInput.value = '';
+  if (plateInput) plateInput.value = '';
+
+  showToast(`🎉 Motorista "${newDriverObj.name}" (${newDriverObj.vehicle.model}) CADASTRADO E ONLINE!`, 'success');
+
+  // 6. Atualizar Tabela Admin e Mapa
+  await loadAdminDrivers();
+  renderOnlineFleetOnPassengerMap();
+  return false;
+};
+
+function initEventHandlers() {
+  safeAddEventListener('formRegisterDriver', 'submit', window.handleDriverRegisterSubmit);
 
   safeAddEventListener('formPromoZone', 'submit', async (e) => {
     e.preventDefault();
