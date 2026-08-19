@@ -83,11 +83,38 @@ function broadcastRideEvent(eventType, payload) {
   try {
     localStorage.removeItem('99_BROADCAST_EVENT');
     localStorage.setItem('99_BROADCAST_EVENT', JSON.stringify(eventData));
+    localStorage.setItem('99_PENDING_RIDE_DISPATCH', JSON.stringify(payload));
   } catch(e) {}
 
   if (state.socket) {
     try { state.socket.emit(eventType, payload); } catch(e) {}
   }
+
+  // Tentar envio via REST HTTP para todos os endpoints ativos (Localhost, IP Wi-Fi e Cloud)
+  const targetEndpoints = [
+    'http://localhost:4000/api/rides/request',
+    'http://192.168.1.45:4000/api/rides/request'
+  ];
+  if (BACKEND_URL && !targetEndpoints.includes(`${BACKEND_URL}/api/rides/request`)) {
+    targetEndpoints.push(`${BACKEND_URL}/api/rides/request`);
+  }
+
+  targetEndpoints.forEach(url => {
+    try {
+      fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          passengerName: payload.passengerName || 'Cliente 99',
+          origin: payload.origin,
+          destination: payload.destination,
+          categoryKey: payload.categoryKey || 'pop',
+          estimatedPrice: payload.price,
+          paymentMethod: payload.paymentMethod || 'pix'
+        })
+      }).catch(() => {});
+    } catch(e) {}
+  });
 }
 
 function ensureDefaultOnlineDriverExists() {
@@ -156,10 +183,14 @@ function initCrossTabDispatchListeners() {
   }
 
   window.addEventListener('storage', (evt) => {
-    if (evt.key === '99_BROADCAST_EVENT' && evt.newValue) {
+    if ((evt.key === '99_BROADCAST_EVENT' || evt.key === '99_PENDING_RIDE_DISPATCH') && evt.newValue) {
       try {
         const data = JSON.parse(evt.newValue);
-        handleEvent(data);
+        const payload = data.payload || data;
+        const isDriverPage = !!document.getElementById('mapDriver');
+        if (isDriverPage && payload && payload.id) {
+          showRideDispatchToAllOnlineDrivers(payload);
+        }
       } catch(e) {}
     }
   });
@@ -189,23 +220,44 @@ try {
   }
 } catch(e) {}
 
-// Loop de Polling de Sincronização entre Dispositivos Diferentes (PC -> Celular)
+// Loop de Polling de Sincronização de Ultra-Velocidade (0.8s) entre Dispositivos e Abas
 setInterval(() => {
   const isDriverPage = !!document.getElementById('mapDriver');
   if (!isDriverPage) return;
 
-  if (BACKEND_URL) {
-    fetch(`${BACKEND_URL}/api/rides/pending`).then(r => r.json()).then(ridesList => {
+  // 1. Checagem em LocalStorage Local / Cross-Tab
+  try {
+    const rawPending = localStorage.getItem('99_PENDING_RIDE_DISPATCH');
+    if (rawPending) {
+      const pendingRide = JSON.parse(rawPending);
+      if (pendingRide && pendingRide.id && (!state.currentRide || state.currentRide.id !== pendingRide.id)) {
+        console.log('⚡ Nova corrida capturada do LocalStorage pelo Motorista:', pendingRide);
+        showRideDispatchToAllOnlineDrivers(pendingRide);
+      }
+    }
+  } catch(e) {}
+
+  // 2. Checagem em Endpoints REST do Servidor Backend
+  const checkUrls = [
+    'http://localhost:4000/api/rides/pending',
+    'http://192.168.1.45:4000/api/rides/pending'
+  ];
+  if (BACKEND_URL && !checkUrls.includes(`${BACKEND_URL}/api/rides/pending`)) {
+    checkUrls.push(`${BACKEND_URL}/api/rides/pending`);
+  }
+
+  checkUrls.forEach(url => {
+    fetch(url).then(r => r.json()).then(ridesList => {
       if (Array.isArray(ridesList) && ridesList.length > 0) {
         const lastPending = ridesList[ridesList.length - 1];
         if (lastPending && (!state.currentRide || state.currentRide.id !== lastPending.id)) {
-          console.log('📡 Nova corrida capturada via Polling de Rede:', lastPending);
+          console.log('⚡ Nova corrida capturada via Polling de Rede:', lastPending);
           showRideDispatchToAllOnlineDrivers(lastPending);
         }
       }
     }).catch(() => {});
-  }
-}, 1500);
+  });
+}, 800);
 
 function showRideDispatchToAllOnlineDrivers(ride) {
   state.currentRide = ride;
@@ -344,23 +396,22 @@ function unlockAudioContext() {
       if (audioCtx.state === 'suspended') {
         audioCtx.resume();
       }
+      // Criar e tocar um buffer silencioso para desbloqueio permanente de audio no navegador
+      const buffer = audioCtx.createBuffer(1, 1, 22050);
+      const source = audioCtx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(audioCtx.destination);
+      source.start(0);
       audioUnlocked = true;
     }
   } catch(e) {}
 }
 
-document.addEventListener('click', () => {
-  unlockAudioContext();
-  if (!globalSirenAudioElem) {
-    try {
-      const wavUri = createSirenWavDataUri();
-      const dummy = new Audio(wavUri);
-      dummy.volume = 0.01;
-      dummy.play().then(() => dummy.pause()).catch(() => {});
-    } catch(e) {}
-  }
+['click', 'touchstart', 'touchend', 'mousedown', 'pointerdown', 'keydown'].forEach(evtType => {
+  window.addEventListener(evtType, () => {
+    unlockAudioContext();
+  }, { passive: true });
 });
-document.addEventListener('touchstart', unlockAudioContext);
 
 let wakeLock = null;
 async function requestScreenWakeLock() {
@@ -386,9 +437,9 @@ window.enableDriverAudio = function() {
   if (banner) {
     banner.style.background = 'linear-gradient(135deg, #10b981, #059669)';
     const text = document.getElementById('audioUnlockText');
-    if (text) text.innerText = '🔊 SOM DE SIRENE & VIBRAÇÃO NO 4G/5G ATIVADOS E PRONTOS!';
+    if (text) text.innerText = '🔊 SOM DE SIRENE & VIBRAÇÃO 100% LIBERADOS E PRONTOS!';
   }
-  showToast('🔊 Alarme de Áudio & Tela Acesa Ativados para 4G/5G!', 'success');
+  showToast('🔊 Alarme de Áudio & Tela Acesa Liberados com Sucesso!', 'success');
 };
 
 function playSirenSound() {
@@ -410,7 +461,6 @@ function playSirenSound() {
       if (p !== undefined) {
         p.catch(err => {
           console.warn('📌 Toque na tela para ativar o som de sirene no celular!', err);
-          showToast('🔊 TOQUE NA TELA DO CELULAR PARA ATIVAR O SOM!', 'warning');
         });
       }
     }
@@ -429,7 +479,7 @@ function playSirenSound() {
 
       sirenOsc.type = 'sawtooth';
       sirenOsc.frequency.setValueAtTime(880, audioCtx.currentTime);
-      sirenGain.gain.setValueAtTime(0.7, audioCtx.currentTime);
+      sirenGain.gain.setValueAtTime(0.8, audioCtx.currentTime);
 
       sirenOsc.connect(sirenGain);
       sirenGain.connect(audioCtx.destination);
