@@ -1,8 +1,13 @@
 {
-  "version": 2,
-  "cleanUrls": true,
+  "cleanUrls": false,
+  "trailingSlash": false,
   "rewrites": [
-    { "source": "/", "destination": "/index.html" },
-    { "source": "/(.*)", "destination": "/$1" }
+    { "source": "/", "destination": "/cliente.html" },
+    { "source": "/cliente", "destination": "/cliente.html" },
+    { "source": "/cliente.html", "destination": "/cliente.html" },
+    { "source": "/motorista", "destination": "/motorista.html" },
+    { "source": "/motorista.html", "destination": "/motorista.html" },
+    { "source": "/admin", "destination": "/admin.html" },
+    { "source": "/admin.html", "destination": "/admin.html" }
   ]
 }
