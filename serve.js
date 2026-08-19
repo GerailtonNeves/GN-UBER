@@ -16,7 +16,7 @@ const MIME_TYPES = {
 };
 
 const server = http.createServer((req, res) => {
-  // Strip query parameters like ?v=3.0 so Windows file paths resolve cleanly
+  // Strip query parameters like ?v=999.0 so Windows file paths resolve cleanly
   const cleanUrl = req.url.split('?')[0];
   let filePath = path.join(PUBLIC_DIR, cleanUrl === '/' ? 'index.html' : cleanUrl);
   const ext = path.extname(filePath).toLowerCase();
@@ -32,7 +32,12 @@ const server = http.createServer((req, res) => {
         res.end(`Erro no Servidor: ${err.code}`);
       }
     } else {
-      res.writeHead(200, { 'Content-Type': contentType });
+      res.writeHead(200, {
+        'Content-Type': contentType,
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
       res.end(content, 'utf-8');
     }
   });
@@ -40,7 +45,7 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
   console.log(`====================================================`);
-  console.log(`🟡 FRONTEND 99 SUPER-APP RODANDO NA PORTA ${PORT}`);
+  console.log(`🟡 FRONTEND 99 SUPER-APP (NO-CACHE) RODANDO NA PORTA ${PORT}`);
   console.log(`🌐 Acesse no navegador: http://localhost:${PORT}`);
   console.log(`====================================================`);
 });
