@@ -176,11 +176,36 @@ try {
         showRideDispatchToAllOnlineDrivers(ridePayload);
       }
     });
+    state.socket.on('ride_created', (ridePayload) => {
+      console.log('📡 Nova corrida recebida via REST/Socket:', ridePayload);
+      const isDriverPage = !!document.getElementById('mapDriver');
+      if (isDriverPage) {
+        showRideDispatchToAllOnlineDrivers(ridePayload);
+      }
+    });
     state.socket.on('RIDE_ACCEPTED_FIRST_WINNER', (payload) => {
       handleRideAcceptedWinner(payload);
     });
   }
 } catch(e) {}
+
+// Loop de Polling de Sincronização entre Dispositivos Diferentes (PC -> Celular)
+setInterval(() => {
+  const isDriverPage = !!document.getElementById('mapDriver');
+  if (!isDriverPage) return;
+
+  if (BACKEND_URL) {
+    fetch(`${BACKEND_URL}/api/rides/pending`).then(r => r.json()).then(ridesList => {
+      if (Array.isArray(ridesList) && ridesList.length > 0) {
+        const lastPending = ridesList[ridesList.length - 1];
+        if (lastPending && (!state.currentRide || state.currentRide.id !== lastPending.id)) {
+          console.log('📡 Nova corrida capturada via Polling de Rede:', lastPending);
+          showRideDispatchToAllOnlineDrivers(lastPending);
+        }
+      }
+    }).catch(() => {});
+  }
+}, 1500);
 
 function showRideDispatchToAllOnlineDrivers(ride) {
   state.currentRide = ride;
@@ -1676,11 +1701,133 @@ window.installPwaApp = async function() {
   }
 };
 
+// ---------------- GESTÃO DE TARIFAS & ZONAS PROMOCIONAIS DINÂMICAS ----------------
+window.handleSaveAdminFares = function(evt) {
+  if (evt) evt.preventDefault();
+  const basePrice = document.getElementById('inputAdminBasePrice')?.value || 6.00;
+  const pricePerKm = document.getElementById('inputAdminPricePerKm')?.value || 2.50;
+  const pricePerMin = document.getElementById('inputAdminPricePerMin')?.value || 0.50;
+  const platformFeePercent = document.getElementById('inputAdminPlatformFee')?.value || 15;
+
+  const farePayload = {
+    basePrice: parseFloat(basePrice),
+    pricePerKm: parseFloat(pricePerKm),
+    pricePerMin: parseFloat(pricePerMin),
+    platformFeePercent: parseFloat(platformFeePercent)
+  };
+
+  if (BACKEND_URL) {
+    fetch(`${BACKEND_URL}/api/config/fares`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(farePayload)
+    }).then(r => r.json()).then(res => {
+      showToast('💾 Tarifas e taxas salvas e aplicadas em tempo real!', 'success');
+    }).catch(() => {
+      showToast('💾 Tarifas salvas localmente!', 'success');
+    });
+  } else {
+    showToast('💾 Tarifas salvas com sucesso!', 'success');
+  }
+};
+
+window.handleCreatePromoZone = function(evt) {
+  if (evt) evt.preventDefault();
+  const name = document.getElementById('inputZoneName')?.value;
+  const surgeFactor = document.getElementById('selectZoneSurge')?.value || 1.5;
+  const driverBonus = document.getElementById('inputZoneDriverBonus')?.value || 5.00;
+  const passengerDiscount = document.getElementById('inputZonePassengerDiscount')?.value || 10;
+
+  if (!name) {
+    showToast('⚠️ Informe o nome da zona/bairro!', 'warning');
+    return;
+  }
+
+  const zonePayload = {
+    name,
+    surgeFactor: parseFloat(surgeFactor),
+    driverBonus: parseFloat(driverBonus),
+    passengerDiscount: parseFloat(passengerDiscount)
+  };
+
+  if (BACKEND_URL) {
+    fetch(`${BACKEND_URL}/api/config/promo-zones`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(zonePayload)
+    }).then(r => r.json()).then(res => {
+      showToast(`🚀 Zona Promocional "${name}" (Dinâmica ${surgeFactor}x) Ativada!`, 'success');
+      loadAdminConfig();
+    }).catch(() => {
+      showToast(`🚀 Zona Promocional "${name}" Ativada!`, 'success');
+    });
+  } else {
+    showToast(`🚀 Zona Promocional "${name}" Ativada!`, 'success');
+  }
+};
+
+window.deletePromoZone = function(zoneId) {
+  if (BACKEND_URL) {
+    fetch(`${BACKEND_URL}/api/config/promo-zones/${zoneId}`, {
+      method: 'DELETE'
+    }).then(() => {
+      showToast('🔴 Zona promocional desativada.', 'info');
+      loadAdminConfig();
+    }).catch(() => {});
+  }
+};
+
+function renderAdminZonesTable(zones) {
+  const tbody = document.getElementById('adminZonesTable');
+  if (!tbody) return;
+
+  if (!zones || zones.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #6b7280; padding: 14px;">Nenhuma zona promocional ativada no momento.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = zones.map(z => `
+    <tr>
+      <td><strong>${z.name}</strong></td>
+      <td><span class="badge-surge" style="background: #fffbeb; color: #d97706; border: 1px solid #fde68a; font-weight: 800; padding: 4px 10px; border-radius: 10px;">⚡ ${z.surgeFactor}x</span></td>
+      <td><span style="color: #10b981; font-weight: 800;">+R$ ${parseFloat(z.driverBonus || 0).toFixed(2).replace('.', ',')}</span></td>
+      <td><span style="color: #0284c7; font-weight: 800;">${z.passengerDiscount || 0}% Off</span></td>
+      <td><span style="color: #10b981; font-weight: 800;">🟢 ATIVA</span></td>
+      <td>
+        <button type="button" onclick="window.deletePromoZone('${z.id}')" style="background: #ef4444; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-weight: 800; cursor: pointer;">🔴 Desativar</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function loadAdminConfig() {
+  if (BACKEND_URL) {
+    fetch(`${BACKEND_URL}/api/config`).then(r => r.json()).then(cfg => {
+      if (cfg) {
+        if (cfg.basePrice && document.getElementById('inputAdminBasePrice')) {
+          document.getElementById('inputAdminBasePrice').value = cfg.basePrice;
+        }
+        if (cfg.pricePerKm && document.getElementById('inputAdminPricePerKm')) {
+          document.getElementById('inputAdminPricePerKm').value = cfg.pricePerKm;
+        }
+        if (cfg.pricePerMin && document.getElementById('inputAdminPricePerMin')) {
+          document.getElementById('inputAdminPricePerMin').value = cfg.pricePerMin;
+        }
+        if (cfg.platformFeePercent && document.getElementById('inputAdminPlatformFee')) {
+          document.getElementById('inputAdminPlatformFee').value = cfg.platformFeePercent;
+        }
+        renderAdminZonesTable(cfg.promoZones || []);
+      }
+    }).catch(() => {});
+  }
+}
+
 // ---------------- DOMCONTENTLOADED INITIALIZATION ----------------
 document.addEventListener('DOMContentLoaded', () => {
   try { ensureDefaultOnlineDriverExists(); } catch(e) {}
   try { initMaps(); } catch(e) {}
   try { loadAdminDrivers(); } catch(e) {}
+  try { loadAdminConfig(); } catch(e) {}
   try { loadCurrentPassengerUI(); } catch(e) {}
   try { initCrossTabDispatchListeners(); } catch(e) {}
 

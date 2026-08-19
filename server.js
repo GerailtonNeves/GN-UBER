@@ -44,6 +44,64 @@ let drivers = [];
 let passengers = [];
 let rides = [];
 
+// BUSCAR CONFIGURAÇÕES DE TARIFAS E ZONAS PROMOCIONAIS
+app.get('/api/config', (req, res) => {
+  res.json(systemConfig);
+});
+
+// ATUALIZAR TARIFAS E TAXAS DA PLATAFORMA
+app.post('/api/config/fares', (req, res) => {
+  const { basePrice, pricePerKm, pricePerMin, platformFeePercent, surgeFactor } = req.body;
+  if (basePrice !== undefined) systemConfig.basePrice = parseFloat(basePrice);
+  if (pricePerKm !== undefined) systemConfig.pricePerKm = parseFloat(pricePerKm);
+  if (pricePerMin !== undefined) systemConfig.pricePerMin = parseFloat(pricePerMin);
+  if (platformFeePercent !== undefined) systemConfig.platformFeePercent = parseFloat(platformFeePercent);
+  if (surgeFactor !== undefined) systemConfig.surgeFactor = parseFloat(surgeFactor);
+
+  saveDataToDisk();
+  io.emit('config_updated', systemConfig);
+  res.json({ message: 'Tarifas e taxas atualizadas com sucesso!', systemConfig });
+});
+
+// ADICIONAR OU ATUALIZAR ZONA PROMOCIONAL / DINÂMICA
+app.post('/api/config/promo-zones', (req, res) => {
+  const { name, surgeFactor, driverBonus, passengerDiscount } = req.body;
+  if (!name) return res.status(400).json({ error: 'Nome da zona é obrigatório' });
+
+  if (!systemConfig.promoZones) systemConfig.promoZones = [];
+
+  const newZone = {
+    id: `zone-${Date.now()}`,
+    name,
+    surgeFactor: parseFloat(surgeFactor || 1.0),
+    driverBonus: parseFloat(driverBonus || 0),
+    passengerDiscount: parseFloat(passengerDiscount || 0),
+    active: true,
+    createdAt: new Date()
+  };
+
+  systemConfig.promoZones.push(newZone);
+  if (newZone.surgeFactor > systemConfig.surgeFactor) {
+    systemConfig.surgeFactor = newZone.surgeFactor;
+  }
+
+  saveDataToDisk();
+  io.emit('config_updated', systemConfig);
+  res.json({ message: 'Zona promocional ativada com sucesso!', zone: newZone, systemConfig });
+});
+
+// REMOVER / DESATIVAR ZONA PROMOCIONAL
+app.delete('/api/config/promo-zones/:id', (req, res) => {
+  if (systemConfig.promoZones) {
+    systemConfig.promoZones = systemConfig.promoZones.filter(z => String(z.id) !== String(req.params.id));
+    const activeSurges = systemConfig.promoZones.filter(z => z.active).map(z => z.surgeFactor);
+    systemConfig.surgeFactor = activeSurges.length > 0 ? Math.max(...activeSurges) : 1.0;
+  }
+  saveDataToDisk();
+  io.emit('config_updated', systemConfig);
+  res.json({ message: 'Zona desativada com sucesso', systemConfig });
+});
+
 function saveDataToDisk() {
   try {
     const data = { drivers, rides, systemConfig, passengers };
@@ -191,14 +249,19 @@ app.post('/api/rides/estimate', (req, res) => {
   res.json({ distanceKm: parseFloat(distanceKm.toFixed(2)), durationMinutes, surgeFactor: systemConfig.surgeFactor, options });
 });
 
+app.get('/api/rides/pending', (req, res) => {
+  const pending = rides.filter(r => r.status === 'SEARCHING');
+  res.json(pending);
+});
+
 app.post('/api/rides/request', (req, res) => {
   const { passengerName, origin, destination, categoryKey, estimatedPrice, paymentMethod } = req.body;
   
   const ride = {
     id: `ride-${Date.now()}`,
     passengerName: passengerName || 'Cliente 99',
-    origin,
-    destination,
+    origin: origin || { lat: -23.561684, lng: -46.655981, name: 'MASP - Av. Paulista' },
+    destination: destination || { lat: -23.587416, lng: -46.657634, name: 'Parque Ibirapuera' },
     categoryKey: categoryKey || 'pop',
     price: estimatedPrice || 18.50,
     paymentMethod: paymentMethod || 'pix',
@@ -209,6 +272,7 @@ app.post('/api/rides/request', (req, res) => {
   rides.push(ride);
   saveDataToDisk();
   io.emit('ride_created', ride);
+  io.emit('NEW_RIDE_REQUESTED', ride);
   res.status(201).json(ride);
 });
 

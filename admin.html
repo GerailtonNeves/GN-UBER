@@ -85,8 +85,105 @@
             <tbody id="adminDriversTable"></tbody>
           </table>
         </div>
+      <!-- MÓDULO 1: AJUSTE DE PREÇOS DE TARIFAS & TAXA DA PLATAFORMA -->
+      <div class="admin-box" style="background: #ffffff; border: 2px solid #fde68a; border-radius: 16px; padding: 20px; margin-top: 20px;">
+        <h3 style="font-size: 1.1rem; font-weight: 800; color: #111827; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-coins" style="color: #ff9e00;"></i> 💵 Ajuste de Tarifas & Taxas da Plataforma (Tempo Real)
+        </h3>
+
+        <form id="formAdminFares" onsubmit="window.handleSaveAdminFares(event)" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; align-items: end;">
+          <div>
+            <label style="font-weight: 700; font-size: 0.85rem; color: #374151;">Tarifa Base (R$ Mínimo):</label>
+            <input type="number" step="0.50" id="inputAdminBasePrice" value="6.00" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-weight: 800;" required>
+          </div>
+
+          <div>
+            <label style="font-weight: 700; font-size: 0.85rem; color: #374151;">Preço por KM (R$/km):</label>
+            <input type="number" step="0.10" id="inputAdminPricePerKm" value="2.50" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-weight: 800;" required>
+          </div>
+
+          <div>
+            <label style="font-weight: 700; font-size: 0.85rem; color: #374151;">Preço por Minuto (R$/min):</label>
+            <input type="number" step="0.05" id="inputAdminPricePerMin" value="0.50" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-weight: 800;" required>
+          </div>
+
+          <div>
+            <label style="font-weight: 700; font-size: 0.85rem; color: #374151;">Taxa da Plataforma (%):</label>
+            <input type="number" step="1" id="inputAdminPlatformFee" value="15" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-weight: 800;" required>
+          </div>
+
+          <div style="grid-column: 1 / -1;">
+            <button type="submit" class="btn-primary" style="width: 100%; padding: 14px; font-weight: 900; font-size: 0.95rem; background: linear-gradient(135deg, #10b981, #059669); border: none;">
+              💾 SALVAR NOVAS TARIFAS E APLICAR EM TEMPO REAL
+            </button>
+          </div>
+        </form>
       </div>
 
+      <!-- MÓDULO 2: ZONAS PROMOCIONAIS & PREÇO DINÂMICO PARALELO PARA MOTORISTAS E CLIENTES -->
+      <div class="admin-box" style="background: #fffdf5; border: 2px solid #ff9e00; border-radius: 16px; padding: 20px; margin-top: 20px;">
+        <h3 style="font-size: 1.1rem; font-weight: 800; color: #d97706; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-bolt fa-bounce" style="color: #ff9e00;"></i> ⚡ Criar Zonas Promocionais & Preço Dinâmico (Bairros & Locais)
+        </h3>
+        <p style="font-size: 0.82rem; color: #6b7280; margin-bottom: 16px;">
+          Defina horários de alta demanda, aumente a tarifa para clientes (ex: 1.5x) ou dê bônus extra aos motoristas por corrida realizada em determinado bairro!
+        </p>
+
+        <form id="formAdminPromoZone" onsubmit="window.handleCreatePromoZone(event)" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 20px;">
+          <div>
+            <label style="font-weight: 700; font-size: 0.85rem; color: #374151;">Nome da Zona / Bairro:</label>
+            <input type="text" id="inputZoneName" placeholder="Ex: Paulista / Centro ou Congonhas" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-weight: 700;" required>
+          </div>
+
+          <div>
+            <label style="font-weight: 700; font-size: 0.85rem; color: #374151;">Multiplicador Dinâmico (Surge):</label>
+            <select id="selectZoneSurge" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-weight: 800;">
+              <option value="1.0">1.0x (Preço Normal)</option>
+              <option value="1.2">1.2x (+20% Tarifa Dinâmica)</option>
+              <option value="1.5" selected>1.5x (+50% Tarifa Dinâmica)</option>
+              <option value="2.0">2.0x (Preço Dobrado! Alta Demanda)</option>
+              <option value="3.0">3.0x (Alta Demanda Extreme)</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-weight: 700; font-size: 0.85rem; color: #374151;">Bônus ao Motorista (+R$/corrida):</label>
+            <input type="number" step="1" id="inputZoneDriverBonus" value="5.00" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-weight: 800;">
+          </div>
+
+          <div>
+            <label style="font-weight: 700; font-size: 0.85rem; color: #374151;">Desconto ao Cliente (% Off):</label>
+            <input type="number" step="5" id="inputZonePassengerDiscount" value="10" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-weight: 800;">
+          </div>
+
+          <div style="grid-column: 1 / -1;">
+            <button type="submit" class="btn-primary" style="width: 100%; padding: 14px; font-weight: 900; font-size: 0.95rem; background: linear-gradient(135deg, #ff9e00, #d97706); border: none;">
+              🚀 ATIVAR ZONA PROMOCIONAL & PREÇO DINÂMICO AGORA
+            </button>
+          </div>
+        </form>
+
+        <h4 style="font-size: 0.95rem; font-weight: 800; color: #111827; margin-bottom: 10px;">Zonas Promocionais / Dinâmicas Ativas:</h4>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr style="background: #fffbeb;">
+                <th>Bairro / Localidade</th>
+                <th>Preço Dinâmico</th>
+                <th>Bônus Motorista</th>
+                <th>Desconto Cliente</th>
+                <th>Status</th>
+                <th>Ação</th>
+              </tr>
+            </thead>
+            <tbody id="adminZonesTable">
+              <tr>
+                <td colspan="6" style="text-align: center; color: #6b7280; padding: 14px;">Nenhuma zona promocional ativada no momento.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </section>
 
   </main>
