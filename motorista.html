@@ -238,6 +238,29 @@
     </div>
   </div>
 
+  <!-- MODAL COBRANÇA EM DINHEIRO AO FINAL DA CORRIDA -->
+  <div class="modal-overlay hidden" id="modalCashCollection">
+    <div class="modal-card" style="border: 3px solid #10b981; background: #f0fdf4;">
+      <div class="modal-header" style="border-bottom: 2px solid #a7f3d0;">
+        <h3 style="color: #047857; font-size: 1.2rem;"><i class="fa-solid fa-money-bill-wave"></i> 💵 RECEBER PAGAMENTO EM DINHEIRO</h3>
+      </div>
+      
+      <div style="text-align: center; padding: 14px 0;">
+        <div style="background: #ffffff; border: 2px solid #6ee7b7; border-radius: 14px; padding: 18px; margin-bottom: 16px;">
+          <small style="color: #047857; font-weight: 800; text-transform: uppercase;">Valor Exato a Receber do Cliente:</small>
+          <div id="cashCollectAmount" style="font-size: 2.2rem; font-weight: 900; color: #10b981; margin: 8px 0;">R$ 18,50</div>
+          <div style="background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; padding: 10px; border-radius: 10px; font-weight: 700; font-size: 0.85rem;">
+            ⚠️ ATENÇÃO MOTORISTA: Confirme se recebeu o valor exato em espécie em mãos antes de liberar o passageiro e finalizar a corrida!
+          </div>
+        </div>
+
+        <button onclick="window.confirmCashReceived()" class="btn-success full-width" style="padding: 16px; font-size: 1.1rem; font-weight: 800; background: linear-gradient(135deg, #10b981, #047857); box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);">
+          💵 CONFIRMO QUE RECEBI O DINHEIRO DO CLIENTE
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <script src="app.js?v=3.0"></script>

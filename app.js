@@ -154,12 +154,32 @@ function findNearestOnlineDriver(originLat, originLng) {
   return nearestDriver;
 }
 
-function showRideDispatchModal(ride) {
+function dispatchRideToOnlineDriversChain(ride, driverIndex = 0) {
   const originLat = ride.origin?.lat || LOCATIONS.MASP.lat;
   const originLng = ride.origin?.lng || LOCATIONS.MASP.lng;
 
-  const nearestDriver = findNearestOnlineDriver(originLat, originLng);
-  state.assignedDriver = nearestDriver;
+  let allDrivers = getPersistedDrivers();
+  const onlineDrivers = allDrivers.filter(d => d.status === 'online' && !d.blocked);
+
+  // ORDENAR MOTORISTAS POR PROXIMIDADE DO EMBARQUE
+  onlineDrivers.sort((a, b) => {
+    const distA = Math.hypot((a.location?.lat || -23.561684) - originLat, (a.location?.lng || -46.655981) - originLng);
+    const distB = Math.hypot((b.location?.lat || -23.561684) - originLat, (b.location?.lng || -46.655981) - originLng);
+    return distA - distB;
+  });
+
+  if (onlineDrivers.length === 0 || driverIndex >= onlineDrivers.length) {
+    const modal = document.getElementById('modalRideDispatch');
+    if (modal) modal.classList.add('hidden');
+    stopSirenSound();
+    showToast('⚠️ Nenhum motorista disponível aceitou a corrida no momento.', 'warning');
+    return;
+  }
+
+  const currentDriver = onlineDrivers[driverIndex];
+  state.assignedDriver = currentDriver;
+  state.currentRide = ride;
+  state.currentDriverIndex = driverIndex;
 
   playSirenSound();
 
@@ -176,8 +196,8 @@ function showRideDispatchModal(ride) {
     if (passNameElem) passNameElem.innerText = ride.passengerName || 'Cliente 99';
     if (originElem) originElem.innerText = ride.origin?.name || 'MASP - Av. Paulista';
     if (destElem) destElem.innerText = ride.destination?.name || 'Parque Ibirapuera';
-    if (fareElem) fareElem.innerText = `R$ ${(ride.price || 18.50).toFixed(2).replace('.', ',')}`;
-    if (driverNameElem) driverNameElem.innerText = `🛵 Chamada enviada ao motorista mais próximo: ${nearestDriver.name} (${nearestDriver.distanceKm} km de distância)`;
+    if (fareElem) fareElem.innerText = `R$ ${(ride.price || 18.50).toFixed(2).replace('.', ',')} (${ride.paymentMethodName || '⚡ PIX'})`;
+    if (driverNameElem) driverNameElem.innerText = `🛵 Chamada enviada ao motorista mais próximo: ${currentDriver.name} (${driverIndex + 1}º da fila)`;
 
     let countdown = 15;
     const timerElem = document.getElementById('dispatchTimer');
@@ -192,11 +212,15 @@ function showRideDispatchModal(ride) {
       if (countdown <= 0) {
         clearInterval(state.dispatchTimerInterval);
         stopSirenSound();
-        if (modal) modal.classList.add('hidden');
-        showToast('Chamada não respondida a tempo.', 'warning');
+        showToast(`⏰ Motorista ${currentDriver.name} não respondeu. Passando para o próximo motorista mais próximo...`, 'warning');
+        dispatchRideToOnlineDriversChain(ride, driverIndex + 1);
       }
     }, 1000);
   }
+}
+
+function showRideDispatchModal(ride) {
+  dispatchRideToOnlineDriversChain(ride, 0);
 }
 
 window.acceptRideDispatch = function() {
@@ -206,12 +230,19 @@ window.acceptRideDispatch = function() {
   const modal = document.getElementById('modalRideDispatch');
   if (modal) modal.classList.add('hidden');
 
+  const driver = state.assignedDriver || { name: 'Motorista 99' };
   const passengerName = document.getElementById('dispatchPassengerName')?.innerText || 'Cliente 99';
   const originName = document.getElementById('dispatchOrigin')?.innerText || 'MASP - Av. Paulista';
   const destName = document.getElementById('dispatchDest')?.innerText || 'Parque Ibirapuera';
   const fareVal = document.getElementById('dispatchFare')?.innerText || 'R$ 18,50';
 
-  // 1. Exibir Card da Corrida Aceita no App do Motorista
+  // NOTIFICAR EM TEMPO REAL TODAS AS ABAS/DISPOSITIVOS DO CLIENTE QUE A CORRIDA FOI ACEITA!
+  broadcastRideEvent('RIDE_ACCEPTED_BY_DRIVER', {
+    driverName: driver.name,
+    passengerName,
+    fareVal
+  });
+
   const cardDriver = document.getElementById('cardDriverActiveRide');
   if (cardDriver) {
     cardDriver.classList.remove('hidden');
@@ -257,8 +288,8 @@ window.acceptRideDispatch = function() {
     passStatus.style.color = '#10b981';
   }
 
-  showToast('🎉 Corrida 99 Aceita com Sucesso!', 'success');
-  alert('🎉 CORRIDA 99 ACEITA COM SUCESSO!\n\nNavegação GPS ativada! Dirija-se ao local de embarque do cliente.');
+  showToast(`🎉 Corrida 99 Aceita por ${driver.name}!`, 'success');
+  alert(`🎉 CORRIDA 99 ACEITA COM SUCESSO POR ${driver.name.toUpperCase()}!\n\nNavegação GPS ativada! Dirija-se ao local de embarque do cliente.`);
 };
 
 // ---------------- CONTATO E SUPORTE 99 ----------------
@@ -352,20 +383,49 @@ window.driverPackageCollected = function() {
 };
 
 window.driverCompleteRide = function() {
+  const fareVal = document.getElementById('driverActiveFare')?.innerText || 'R$ 18,50';
+  const ride = state.currentRide || {};
+  const isCash = ride.paymentMethod === 'cash' || fareVal.includes('Dinheiro') || fareVal.includes('💵');
+
+  if (isCash) {
+    const modalCash = document.getElementById('modalCashCollection');
+    const amountElem = document.getElementById('cashCollectAmount');
+    if (amountElem) amountElem.innerText = fareVal.split('(')[0].trim();
+    if (modalCash) {
+      modalCash.classList.remove('hidden');
+      return;
+    }
+  }
+
+  finishRideCleanly(fareVal);
+};
+
+window.confirmCashReceived = function() {
+  const modalCash = document.getElementById('modalCashCollection');
+  if (modalCash) modalCash.classList.add('hidden');
+
+  const fareVal = document.getElementById('driverActiveFare')?.innerText || 'R$ 18,50';
+  finishRideCleanly(fareVal, true);
+};
+
+function finishRideCleanly(fareVal, cashConfirmed = false) {
   const cardDriver = document.getElementById('cardDriverActiveRide');
   if (cardDriver) cardDriver.classList.add('hidden');
 
   const passStatus = document.getElementById('passengerStatus');
   if (passStatus) {
-    passStatus.innerText = '🏁 Viagem Concluída! Obrigado por usar a 99.';
+    passStatus.innerText = '🏁 Viagem Concluída com Sucesso! Obrigado por usar a 99.';
     passStatus.style.background = 'rgba(255, 158, 0, 0.18)';
     passStatus.style.color = '#d97706';
   }
 
-  const fareVal = document.getElementById('driverActiveFare')?.innerText || 'R$ 18,50';
+  const msg = cashConfirmed
+    ? `💵 PAGAMENTO EM DINHEIRO RECEBIDO E CONFIRMADO!\n\nValor Recebido: ${fareVal}\n\nViagem 99 Concluída com Sucesso!`
+    : `🏁 VIAGEM CONCLUÍDA E ENTREGUE COM SUCESSO!\n\nValor creditado: ${fareVal}\n\nObrigado por prestar um excelente serviço na 99!`;
+
   showToast('🏁 Viagem concluída com sucesso!', 'success');
-  alert(`🏁 VIAGEM CONCLUÍDA E ENTREGUE COM SUCESSO!\n\nValor a receber: ${fareVal}\n\nObrigado por prestar um excelente serviço na 99!`);
-};
+  alert(msg);
+}
 
 window.rejectRideDispatch = function() {
   stopSirenSound();
@@ -1015,6 +1075,7 @@ document.addEventListener('DOMContentLoaded', () => {
   try { initMaps(); } catch(e) {}
   try { loadAdminDrivers(); } catch(e) {}
   try { loadCurrentPassengerUI(); } catch(e) {}
+  try { initCrossTabDispatchListeners(); } catch(e) {}
 
   try { setupAddressAutocomplete('inputOrigin', 'suggestionsOrigin', 'origin'); } catch(e) {}
   try { setupAddressAutocomplete('inputDestination', 'suggestionsDest', 'destination'); } catch(e) {}
@@ -1089,16 +1150,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const dist = state.fareEstimate ? state.fareEstimate.distanceKm.toFixed(1).replace('.', ',') : '4,2';
     const dur = state.fareEstimate ? state.fareEstimate.durationMinutes : 12;
 
+    const paySelect = document.getElementById('selectPaymentMethod');
+    const payMethodKey = paySelect ? paySelect.value : 'pix';
+    const payMethodName = payMethodKey === 'cash' ? '💵 Dinheiro ao Motorista' : (payMethodKey === 'card' ? '💳 Cartão 99' : '⚡ PIX');
+
     const ridePayload = {
+      id: `ride-${Date.now()}`,
       passengerName: name,
       origin: state.lastCalculatedOrigin || LOCATIONS.MASP,
       destination: state.lastCalculatedDestination || LOCATIONS.IBIRAPUERA,
-      price: state.fareEstimate?.options?.[0]?.price || 18.50
+      price: state.fareEstimate?.options?.[0]?.price || 18.50,
+      paymentMethod: payMethodKey,
+      paymentMethodName: payMethodName
     };
 
     showToast(`⚡ Viagem 99 (${dist} km) solicitada por ${name}!`, 'info');
-    alert(`🎉 Viagem 99 Solicitada com Sucesso por ${name}!\n\n🔔 Disparando alerta de som com SIRENE para o motorista 99 mais próximo da coleta...`);
+    alert(`🎉 Viagem 99 Solicitada com Sucesso por ${name}!\n\n🔔 Disparando alerta em TEMPO REAL para o motorista mais próximo...`);
 
+    broadcastRideEvent('NEW_RIDE_REQUESTED', ridePayload);
     showRideDispatchModal(ridePayload);
   });
 });
