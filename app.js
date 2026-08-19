@@ -659,7 +659,12 @@ window.acceptRideDispatch = function() {
     animateVehicleOnMap(state.passengerMap, origin, vehicleType, 'passenger');
   }
 
-  showToast(`🎉 Corrida Aceita por ${driver.name}! GPS com Rota de Coleta e Entrega aberto automaticamente no Mapa.`, 'success');
+  // DISPARAR AUTOMATICAMENTE O APP DE GPS DO CELULAR DO MOTORISTA (LOCAL DE COLETA)
+  setTimeout(() => {
+    window.openGPSNavigation('pickup');
+  }, 800);
+
+  showToast(`🎉 Corrida Aceita por ${driver.name}! GPS do celular com Rota de Coleta aberto automaticamente.`, 'success');
 };
 
 // ---------------- CONTATO E SUPORTE 99 ----------------
@@ -712,6 +717,25 @@ window.driverCollectPackage = function() {
   showToast('📦 Coletando encomenda/passageiro no local...', 'info');
 };
 
+window.openGPSNavigation = function(type = 'pickup') {
+  const origin = state.lastCalculatedOrigin || LOCATIONS.MASP;
+  const dest = state.lastCalculatedDestination || LOCATIONS.IBIRAPUERA;
+  const target = type === 'pickup' ? origin : dest;
+  const label = type === 'pickup' ? 'Embarque / Coleta' : 'Destino Final de Entrega';
+
+  const lat = target.lat || -23.561684;
+  const lng = target.lng || -46.655981;
+  const name = encodeURIComponent(target.name || label);
+
+  const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&destination_place_id=${name}`;
+  
+  showToast(`🗺️ Abrindo Aplicativo de GPS do Celular para ${label}...`, 'info');
+
+  try {
+    window.open(mapsUrl, '_blank');
+  } catch(e) {}
+};
+
 window.driverPackageCollected = function() {
   const statusElem = document.getElementById('driverActiveStatus');
   if (statusElem) {
@@ -724,7 +748,6 @@ window.driverPackageCollected = function() {
     passStatus.innerText = '📦 Coleta concluída! Indo ao destino final...';
   }
 
-  // ABRIR E REDIRECIONAR O MAPA COM O ENDEREÇO PREENCHIDO DO DESTINO DE ENTREGA
   if (state.driverMap) {
     setTimeout(() => {
       state.driverMap.invalidateSize();
@@ -744,7 +767,12 @@ window.driverPackageCollected = function() {
     }, 200);
   }
 
-  showToast('✅ Coleta Concluída! Rota do Destino traçada no GPS.', 'success');
+  // DISPARAR AUTOMATICAMENTE O APP DE GPS DO CELULAR COM O ENDEREÇO DA ENTREGA
+  setTimeout(() => {
+    window.openGPSNavigation('destination');
+  }, 600);
+
+  showToast('✅ Coleta Concluída! Abrindo GPS do Celular com a Rota da Entrega Final.', 'success');
 };
 
 window.driverCompleteRide = function() {
