@@ -218,6 +218,16 @@ io.on('connection', (socket) => {
 
   socket.on('join_ride', (rideId) => socket.join(`ride_${rideId}`));
 
+  socket.on('NEW_RIDE_REQUESTED', (ridePayload) => {
+    console.log('📡 Transmitindo nova corrida para todos os motoristas:', ridePayload);
+    io.emit('NEW_RIDE_REQUESTED', ridePayload);
+  });
+
+  socket.on('RIDE_ACCEPTED_FIRST_WINNER', (payload) => {
+    console.log('📡 Transmitindo aceite de corrida:', payload);
+    io.emit('RIDE_ACCEPTED_FIRST_WINNER', payload);
+  });
+
   socket.on('update_driver_location', (data) => {
     const driver = drivers.find(d => d.id === data.driverId);
     if (driver) {

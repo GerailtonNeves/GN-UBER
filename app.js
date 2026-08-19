@@ -54,6 +54,20 @@ function safeAddEventListener(id, event, handler) {
   if (elem) elem.addEventListener(event, handler);
 }
 
+// Socket.io Connection Real-time
+try {
+  if (typeof io !== 'undefined') {
+    state.socket = io(BACKEND_URL);
+    state.socket.on('NEW_RIDE_REQUESTED', (ridePayload) => {
+      console.log('📡 Nova corrida recebida via Socket.io:', ridePayload);
+      showRideDispatchToAllOnlineDrivers(ridePayload);
+    });
+    state.socket.on('RIDE_ACCEPTED_FIRST_WINNER', (payload) => {
+      handleRideAcceptedWinner(payload);
+    });
+  }
+} catch(e) {}
+
 // ---------------- 🔊 SINTETIZADOR DE SOM DE SIRENE 99 ----------------
 let audioCtx = null;
 let sirenOsc = null;
@@ -67,24 +81,28 @@ function playSirenSound() {
     if (!AudioContextClass) return;
     audioCtx = new AudioContextClass();
 
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+
     sirenOsc = audioCtx.createOscillator();
     sirenGain = audioCtx.createGain();
 
     sirenOsc.type = 'sawtooth';
     sirenOsc.frequency.setValueAtTime(800, audioCtx.currentTime);
-
-    sirenGain.gain.setValueAtTime(0.35, audioCtx.currentTime);
+    sirenGain.gain.setValueAtTime(0.4, audioCtx.currentTime);
 
     sirenOsc.connect(sirenGain);
     sirenGain.connect(audioCtx.destination);
-
     sirenOsc.start();
 
     let high = true;
     sirenInterval = setInterval(() => {
       if (!sirenOsc || !audioCtx) return;
       const targetFreq = high ? 1250 : 650;
-      sirenOsc.frequency.exponentialRampToValueAtTime(targetFreq, audioCtx.currentTime + 0.3);
+      try {
+        sirenOsc.frequency.exponentialRampToValueAtTime(targetFreq, audioCtx.currentTime + 0.3);
+      } catch(e) {}
       high = !high;
     }, 380);
   } catch (err) {
@@ -1144,15 +1162,14 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast(`🛣️ Rota exata calculada por ruas: ${routeData.distanceKm.toFixed(1).replace('.', ',')} km!`, 'success');
   });
 
-  safeAddEventListener('btnRequestRide', 'click', () => {
+  window.handleRequestRideSubmit = function() {
     const currentPsg = getPassengerProfile();
     const name = currentPsg?.name || 'Cliente 99';
     const dist = state.fareEstimate ? state.fareEstimate.distanceKm.toFixed(1).replace('.', ',') : '4,2';
-    const dur = state.fareEstimate ? state.fareEstimate.durationMinutes : 12;
 
-    const paySelect = document.getElementById('selectPaymentMethod');
+    const paySelect = document.getElementById('selectPayment') || document.getElementById('selectPaymentMethod');
     const payMethodKey = paySelect ? paySelect.value : 'pix';
-    const payMethodName = payMethodKey === 'cash' ? '💵 Dinheiro ao Motorista' : (payMethodKey === 'card' ? '💳 Cartão 99' : '⚡ PIX');
+    const payMethodName = payMethodKey === 'cash' ? '💵 Dinheiro ao Motorista' : (payMethodKey === 'credit_card' ? '💳 Cartão 99' : '⚡ PIX');
 
     const ridePayload = {
       id: `ride-${Date.now()}`,
@@ -1160,14 +1177,18 @@ document.addEventListener('DOMContentLoaded', () => {
       origin: state.lastCalculatedOrigin || LOCATIONS.MASP,
       destination: state.lastCalculatedDestination || LOCATIONS.IBIRAPUERA,
       price: state.fareEstimate?.options?.[0]?.price || 18.50,
+      distanceKm: state.fareEstimate?.distanceKm || 4.2,
+      durationMinutes: state.fareEstimate?.durationMinutes || 12,
       paymentMethod: payMethodKey,
       paymentMethodName: payMethodName
     };
 
     showToast(`⚡ Viagem 99 (${dist} km) solicitada por ${name}!`, 'info');
-    alert(`🎉 Viagem 99 Solicitada com Sucesso por ${name}!\n\n🔔 Disparando alerta em TEMPO REAL para o motorista mais próximo...`);
+    alert(`🎉 Viagem 99 Solicitada com Sucesso por ${name}!\n\n🔔 Disparando alerta em TEMPO REAL com SIRENE para TODOS os motoristas ONLINE...`);
 
     broadcastRideEvent('NEW_RIDE_REQUESTED', ridePayload);
-    showRideDispatchModal(ridePayload);
-  });
+    showRideDispatchToAllOnlineDrivers(ridePayload);
+  };
+
+  safeAddEventListener('btnRequestRide', 'click', window.handleRequestRideSubmit);
 });
