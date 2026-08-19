@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>99 Super-App - Aplicativo do Passageiro</title>
   
+  <meta name="theme-color" content="#ff9e00">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="99 Brasil">
+  <link rel="manifest" href="manifest.json">
+
   <link rel="icon" type="image/jpeg" href="assets/icon_passageiro.jpg" />
   <link rel="apple-touch-icon" href="assets/icon_passageiro.jpg" />
 
@@ -14,6 +21,22 @@
   <link rel="stylesheet" href="styles.css?v=3.0">
 </head>
 <body>
+
+  <!-- BANNER INTERATIVO DE INSTALAÇÃO DO APP 99 NO CELULAR (PWA) -->
+  <div id="pwaInstallBanner" style="position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 480px; z-index: 9999; background: linear-gradient(135deg, #111827, #1f2937); color: #fff; border: 2px solid #ff9e00; border-radius: 16px; padding: 14px 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: space-between;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <div style="background: #ff9e00; color: #111; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; font-weight: 900; box-shadow: 0 4px 10px rgba(255,158,0,0.4);">
+        🟡
+      </div>
+      <div>
+        <div style="font-weight: 800; font-size: 0.95rem; color: #ff9e00;">📱 Instalar App 99 no Celular</div>
+        <div style="font-size: 0.78rem; color: #9ca3af;">Adicione o ícone oficial na tela inicial em 1 toque!</div>
+      </div>
+    </div>
+    <button type="button" onclick="window.installPwaApp()" style="background: linear-gradient(135deg, #ff9e00, #d97706); color: #111; border: none; padding: 10px 16px; border-radius: 10px; font-weight: 900; font-size: 0.85rem; cursor: pointer; box-shadow: 0 4px 12px rgba(255,158,0,0.3);">
+      📲 INSTALAR
+    </button>
+  </div>
 
   <div id="toastContainer" class="toast-container"></div>
 

@@ -728,22 +728,36 @@ window.driverCollectPackage = function() {
   showToast('📦 Coletando encomenda/passageiro no local...', 'info');
 };
 
-window.openGPSNavigation = function(type = 'pickup') {
+window.openGPSNavigation = function(type = 'pickup', app = 'google_maps') {
   const origin = state.lastCalculatedOrigin || LOCATIONS.MASP;
   const dest = state.lastCalculatedDestination || LOCATIONS.IBIRAPUERA;
   const target = type === 'pickup' ? origin : dest;
-  const label = type === 'pickup' ? 'Embarque / Coleta' : 'Destino Final de Entrega';
+  const label = type === 'pickup' ? 'Local de Coleta / Embarque' : 'Endereço de Entrega Final';
 
-  const lat = target.lat || -23.561684;
-  const lng = target.lng || -46.655981;
-  const name = encodeURIComponent(target.name || label);
+  const originLat = origin.lat || LOCATIONS.MASP.lat;
+  const originLng = origin.lng || LOCATIONS.MASP.lng;
+  const destLat = dest.lat || LOCATIONS.IBIRAPUERA.lat;
+  const destLng = dest.lng || LOCATIONS.IBIRAPUERA.lng;
+  const targetLat = target.lat || LOCATIONS.IBIRAPUERA.lat;
+  const targetLng = target.lng || LOCATIONS.IBIRAPUERA.lng;
+  const targetName = encodeURIComponent(target.name || label);
 
-  const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&destination_place_id=${name}`;
-  
-  showToast(`🗺️ Abrindo Aplicativo de GPS do Celular para ${label}...`, 'info');
+  let navUrl = '';
+
+  if (app === 'waze') {
+    navUrl = `https://waze.com/ul?ll=${targetLat},${targetLng}&navigate=yes`;
+  } else {
+    if (type === 'destination') {
+      navUrl = `https://www.google.com/maps/dir/?api=1&origin=${originLat},${originLng}&destination=${destLat},${destLng}&destination_place_id=${targetName}&travelmode=driving`;
+    } else {
+      navUrl = `https://www.google.com/maps/dir/?api=1&destination=${targetLat},${targetLng}&destination_place_id=${targetName}&travelmode=driving`;
+    }
+  }
+
+  showToast(`🗺️ GPS com Alta Precisão abrindo ${app === 'waze' ? 'Waze' : 'Google Maps'} para ${label}...`, 'info');
 
   try {
-    window.open(mapsUrl, '_blank');
+    window.open(navUrl, '_blank');
   } catch(e) {}
 };
 
@@ -1618,6 +1632,41 @@ window.handleRequestRideSubmit = function() {
     setTimeout(() => {
       if (btn) btn.innerHTML = '✅ SOLICITAÇÃO ENVIADA COM SUCESSO!';
     }, 600);
+  }
+};
+
+// ---------------- PWA SERVICE WORKER & INSTALLATION PROMPT ----------------
+let deferredPwaPrompt = null;
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').then(() => {
+      console.log('📱 Service Worker PWA registrado com sucesso!');
+    }).catch(err => {
+      console.warn('Erro ao registrar Service Worker:', err);
+    });
+  });
+}
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPwaPrompt = e;
+  const banner = document.getElementById('pwaInstallBanner');
+  if (banner) banner.classList.remove('hidden');
+});
+
+window.installPwaApp = async function() {
+  if (deferredPwaPrompt) {
+    deferredPwaPrompt.prompt();
+    const { outcome } = await deferredPwaPrompt.userChoice;
+    if (outcome === 'accepted') {
+      showToast('🎉 Aplicativo 99 Instalado com sucesso na tela inicial!', 'success');
+    }
+    deferredPwaPrompt = null;
+    const banner = document.getElementById('pwaInstallBanner');
+    if (banner) banner.classList.add('hidden');
+  } else {
+    showToast('📱 Toque no menu do seu navegador e selecione "Adicionar à Tela de Início"!', 'info');
   }
 };
 

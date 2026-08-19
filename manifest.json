@@ -1,0 +1,25 @@
+{
+  "name": "99 Super-App Brasil",
+  "short_name": "99 Brasil",
+  "description": "Aplicativo Oficial 99 - Corridas, Entregas e Viagens em Tempo Real com Navegação GPS",
+  "start_url": "/cliente.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ff9e00",
+  "theme_color": "#ff9e00",
+  "icons": [
+    {
+      "src": "assets/icon_passageiro.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icon_passageiro.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}
