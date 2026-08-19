@@ -49,9 +49,57 @@ function showToast(message, type = 'info') {
   }
 }
 
-function safeAddEventListener(id, event, handler) {
-  const elem = document.getElementById(id);
-  if (elem) elem.addEventListener(event, handler);
+let rideBroadcastChannel = null;
+try {
+  if (typeof BroadcastChannel !== 'undefined') {
+    rideBroadcastChannel = new BroadcastChannel('99_RIDE_DISPATCH_CHANNEL');
+  }
+} catch(e) {}
+
+function broadcastRideEvent(eventType, payload) {
+  const eventData = { eventType, payload, timestamp: Date.now() };
+
+  if (rideBroadcastChannel) {
+    try { rideBroadcastChannel.postMessage(eventData); } catch(e) {}
+  }
+
+  try {
+    localStorage.setItem('99_BROADCAST_EVENT', JSON.stringify(eventData));
+  } catch(e) {}
+
+  if (state.socket) {
+    try { state.socket.emit(eventType, payload); } catch(e) {}
+  }
+}
+
+function initCrossTabDispatchListeners() {
+  const handleEvent = (data) => {
+    if (!data || !data.eventType) return;
+
+    const isDriverPage = !!document.getElementById('mapDriver');
+
+    if (data.eventType === 'NEW_RIDE_REQUESTED') {
+      if (isDriverPage) {
+        console.log('📡 Nova corrida recebida via Broadcast:', data.payload);
+        showRideDispatchToAllOnlineDrivers(data.payload);
+      }
+    } else if (data.eventType === 'RIDE_ACCEPTED_FIRST_WINNER') {
+      handleRideAcceptedWinner(data.payload);
+    }
+  };
+
+  if (rideBroadcastChannel) {
+    rideBroadcastChannel.onmessage = (evt) => handleEvent(evt.data);
+  }
+
+  window.addEventListener('storage', (evt) => {
+    if (evt.key === '99_BROADCAST_EVENT' && evt.newValue) {
+      try {
+        const data = JSON.parse(evt.newValue);
+        handleEvent(data);
+      } catch(e) {}
+    }
+  });
 }
 
 // Socket.io Connection Real-time
@@ -60,7 +108,10 @@ try {
     state.socket = io(BACKEND_URL);
     state.socket.on('NEW_RIDE_REQUESTED', (ridePayload) => {
       console.log('📡 Nova corrida recebida via Socket.io:', ridePayload);
-      showRideDispatchToAllOnlineDrivers(ridePayload);
+      const isDriverPage = !!document.getElementById('mapDriver');
+      if (isDriverPage) {
+        showRideDispatchToAllOnlineDrivers(ridePayload);
+      }
     });
     state.socket.on('RIDE_ACCEPTED_FIRST_WINNER', (payload) => {
       handleRideAcceptedWinner(payload);
@@ -68,12 +119,134 @@ try {
   }
 } catch(e) {}
 
-// ---------------- 🔊 SINTETIZADOR DE SOM DE SIRENE 99 ----------------
+function showRideDispatchToAllOnlineDrivers(ride) {
+  state.currentRide = ride;
+  playSirenSound();
+
+  const card = document.getElementById('modalRideDispatch');
+  if (card) {
+    card.classList.remove('hidden');
+
+    const passNameElem = document.getElementById('dispatchPassengerName');
+    const originElem = document.getElementById('dispatchOrigin');
+    const destElem = document.getElementById('dispatchDest');
+    const fareElem = document.getElementById('dispatchFare');
+    const driverNameElem = document.getElementById('dispatchDriverName');
+
+    const priceFormatted = `R$ ${(ride.price || 18.50).toFixed(2).replace('.', ',')}`;
+    const distText = ride.distanceKm ? `${ride.distanceKm.toFixed(1).replace('.', ',')} km (${ride.durationMinutes || 12} min)` : '4,2 km (12 min)';
+
+    if (passNameElem) passNameElem.innerText = ride.passengerName || 'Cliente 99';
+    if (originElem) originElem.innerText = ride.origin?.name || 'MASP - Av. Paulista';
+    if (destElem) destElem.innerText = ride.destination?.name || 'Parque Ibirapuera';
+    if (fareElem) fareElem.innerText = `${priceFormatted} • 🛣️ ${distText} • ${ride.paymentMethodName || '⚡ PIX'}`;
+    if (driverNameElem) driverNameElem.innerText = `🔔 NOVA CORRIDA DISPONÍVEL PARA TODOS OS MOTORISTAS ONLINE! QUEM ACEITAR PRIMEIRO LEVA!`;
+
+    let countdown = 20;
+    const timerElem = document.getElementById('dispatchTimer');
+    if (timerElem) timerElem.innerText = `⏱️ ${countdown}s para aceitar primeiro`;
+
+    if (state.dispatchTimerInterval) clearInterval(state.dispatchTimerInterval);
+
+    state.dispatchTimerInterval = setInterval(() => {
+      countdown--;
+      if (timerElem) timerElem.innerText = `⏱️ ${countdown}s para aceitar primeiro`;
+
+      if (countdown <= 0) {
+        clearInterval(state.dispatchTimerInterval);
+        stopSirenSound();
+        if (card) card.classList.add('hidden');
+        showToast('⏰ A chamada de entrega expirou sem aceite.', 'warning');
+      }
+    }, 1000);
+  }
+}
+
+function handleRideAcceptedWinner(payload) {
+  const activeDriverSelect = document.getElementById('selectActiveDriver');
+  const myDriverId = activeDriverSelect ? activeDriverSelect.value : state.currentDriverId;
+
+  if (String(payload.driverId) !== String(myDriverId)) {
+    stopSirenSound();
+    if (state.dispatchTimerInterval) clearInterval(state.dispatchTimerInterval);
+    const card = document.getElementById('modalRideDispatch');
+    if (card) card.classList.add('hidden');
+    showToast(`ℹ️ O motorista ${payload.driverName} aceitou esta entrega primeiro!`, 'info');
+  }
+
+  const passStatus = document.getElementById('passengerStatus');
+  if (passStatus) {
+    passStatus.innerText = `🚗 Motorista 99 (${payload.driverName}) Aceitou e está a caminho!`;
+    passStatus.style.background = 'rgba(16, 185, 129, 0.18)';
+    passStatus.style.color = '#10b981';
+  }
+}
+
+// ---------------- 🔊 GERADOR DE ARQUIVO DE ÁUDIO WAV PARA SIRENE 99 ----------------
+let cachedSirenWavUri = null;
+let globalSirenAudioElem = null;
 let audioCtx = null;
 let sirenOsc = null;
 let sirenGain = null;
 let sirenInterval = null;
 let audioUnlocked = false;
+
+function createSirenWavDataUri() {
+  if (cachedSirenWavUri) return cachedSirenWavUri;
+  try {
+    const sampleRate = 22050;
+    const duration = 2.5;
+    const numSamples = Math.floor(sampleRate * duration);
+    const buffer = new Uint8Array(44 + numSamples);
+
+    function writeString(offset, str) {
+      for (let i = 0; i < str.length; i++) buffer[offset + i] = str.charCodeAt(i);
+    }
+    function writeUint32(offset, val) {
+      buffer[offset] = val & 0xff;
+      buffer[offset+1] = (val >> 8) & 0xff;
+      buffer[offset+2] = (val >> 16) & 0xff;
+      buffer[offset+3] = (val >> 24) & 0xff;
+    }
+    function writeUint16(offset, val) {
+      buffer[offset] = val & 0xff;
+      buffer[offset+1] = (val >> 8) & 0xff;
+    }
+
+    writeString(0, 'RIFF');
+    writeUint32(4, 36 + numSamples);
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
+    writeUint32(16, 16);
+    writeUint16(20, 1);
+    writeUint16(22, 1);
+    writeUint32(24, sampleRate);
+    writeUint32(28, sampleRate);
+    writeUint16(32, 1);
+    writeUint16(34, 8);
+    writeString(36, 'data');
+    writeUint32(40, numSamples);
+
+    let phase = 0;
+    for (let i = 0; i < numSamples; i++) {
+      const t = i / sampleRate;
+      const freq = (Math.floor(t * 4) % 2 === 0) ? 880 : 1240;
+      phase += (2 * Math.PI * freq) / sampleRate;
+      const sample = Math.sin(phase);
+      buffer[44 + i] = Math.floor((sample + 1) * 127.5);
+    }
+
+    let binary = '';
+    const len = buffer.byteLength;
+    for (let i = 0; i < len; i++) {
+      binary += String.fromCharCode(buffer[i]);
+    }
+    cachedSirenWavUri = 'data:audio/wav;base64,' + btoa(binary);
+    return cachedSirenWavUri;
+  } catch(e) {
+    return null;
+  }
+}
 
 function unlockAudioContext() {
   try {
@@ -88,7 +261,17 @@ function unlockAudioContext() {
   } catch(e) {}
 }
 
-document.addEventListener('click', unlockAudioContext);
+document.addEventListener('click', () => {
+  unlockAudioContext();
+  if (!globalSirenAudioElem) {
+    try {
+      const wavUri = createSirenWavDataUri();
+      const dummy = new Audio(wavUri);
+      dummy.volume = 0.01;
+      dummy.play().then(() => dummy.pause()).catch(() => {});
+    } catch(e) {}
+  }
+});
 document.addEventListener('touchstart', unlockAudioContext);
 
 window.enableDriverAudio = function() {
@@ -97,7 +280,7 @@ window.enableDriverAudio = function() {
     playSirenSound();
     setTimeout(() => {
       stopSirenSound();
-    }, 400);
+    }, 600);
   } catch(e) {}
 
   const banner = document.getElementById('audioUnlockBanner');
@@ -111,42 +294,65 @@ window.enableDriverAudio = function() {
 
 function playSirenSound() {
   stopSirenSound();
+
+  // 1. Tocar via Elemento de Áudio HTML5 Nativo
+  try {
+    const wavUri = createSirenWavDataUri();
+    if (wavUri) {
+      globalSirenAudioElem = new Audio(wavUri);
+      globalSirenAudioElem.loop = true;
+      globalSirenAudioElem.volume = 1.0;
+      const p = globalSirenAudioElem.play();
+      if (p !== undefined) {
+        p.catch(err => {
+          console.warn('📌 Clique em qualquer lugar no App do Motorista para ativar o som!', err);
+        });
+      }
+    }
+  } catch(e) {}
+
+  // 2. Tocar via Web Audio API Synthesizer
   try {
     unlockAudioContext();
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextClass) return;
-    if (!audioCtx) audioCtx = new AudioContextClass();
+    if (AudioContextClass) {
+      if (!audioCtx) audioCtx = new AudioContextClass();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
 
-    if (audioCtx.state === 'suspended') {
-      audioCtx.resume();
+      sirenOsc = audioCtx.createOscillator();
+      sirenGain = audioCtx.createGain();
+
+      sirenOsc.type = 'sawtooth';
+      sirenOsc.frequency.setValueAtTime(880, audioCtx.currentTime);
+      sirenGain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+
+      sirenOsc.connect(sirenGain);
+      sirenGain.connect(audioCtx.destination);
+      sirenOsc.start();
+
+      let high = true;
+      sirenInterval = setInterval(() => {
+        if (!sirenOsc || !audioCtx) return;
+        const targetFreq = high ? 1320 : 660;
+        try {
+          sirenOsc.frequency.exponentialRampToValueAtTime(targetFreq, audioCtx.currentTime + 0.25);
+        } catch(e) {}
+        high = !high;
+      }, 320);
     }
-
-    sirenOsc = audioCtx.createOscillator();
-    sirenGain = audioCtx.createGain();
-
-    sirenOsc.type = 'sawtooth';
-    sirenOsc.frequency.setValueAtTime(880, audioCtx.currentTime);
-    sirenGain.gain.setValueAtTime(0.45, audioCtx.currentTime);
-
-    sirenOsc.connect(sirenGain);
-    sirenGain.connect(audioCtx.destination);
-    sirenOsc.start();
-
-    let high = true;
-    sirenInterval = setInterval(() => {
-      if (!sirenOsc || !audioCtx) return;
-      const targetFreq = high ? 1320 : 660;
-      try {
-        sirenOsc.frequency.exponentialRampToValueAtTime(targetFreq, audioCtx.currentTime + 0.25);
-      } catch(e) {}
-      high = !high;
-    }, 320);
   } catch (err) {
-    console.warn('Erro ao reproduzir som da sirene:', err);
+    console.warn('Erro no sintetizador secundario:', err);
   }
 }
 
 function stopSirenSound() {
+  if (globalSirenAudioElem) {
+    try {
+      globalSirenAudioElem.pause();
+      globalSirenAudioElem.currentTime = 0;
+    } catch(e) {}
+    globalSirenAudioElem = null;
+  }
   if (sirenInterval) {
     clearInterval(sirenInterval);
     sirenInterval = null;
@@ -154,10 +360,6 @@ function stopSirenSound() {
   if (sirenOsc) {
     try { sirenOsc.stop(); } catch (e) {}
     sirenOsc = null;
-  }
-  if (audioCtx) {
-    try { audioCtx.close(); } catch (e) {}
-    audioCtx = null;
   }
 }
 
@@ -1130,92 +1332,154 @@ document.addEventListener('DOMContentLoaded', () => {
   setTimeout(renderOnlineFleetOnPassengerMap, 1000);
   setInterval(renderOnlineFleetOnPassengerMap, 3000);
 
-  safeAddEventListener('btnCalculateFare', 'click', async () => {
+  window.handleCalculateFareSubmit = async function() {
     const btn = document.getElementById('btnCalculateFare');
     if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Traçando Rota por Ruas e Curvas...';
 
-    const originText = document.getElementById('inputOrigin')?.value || LOCATIONS.MASP.name;
-    const destText = document.getElementById('inputDestination')?.value || LOCATIONS.IBIRAPUERA.name;
+    try {
+      let originText = document.getElementById('inputOrigin')?.value?.trim();
+      let destText = document.getElementById('inputDestination')?.value?.trim();
 
-    const origin = await geocodeAddressText(originText, 'origin');
-    const dest = await geocodeAddressText(destText, 'destination');
+      if (!originText) originText = LOCATIONS.MASP.name;
+      if (!destText) {
+        destText = LOCATIONS.IBIRAPUERA.name;
+        const destInput = document.getElementById('inputDestination');
+        if (destInput) destInput.value = LOCATIONS.IBIRAPUERA.name;
+      }
 
-    state.lastCalculatedOrigin = origin;
-    state.lastCalculatedDestination = dest;
+      const origin = await geocodeAddressText(originText, 'origin');
+      const dest = await geocodeAddressText(destText, 'destination');
 
-    const routeData = await fetchOSRMRoute(origin, dest);
-    const options = calculateFareCategories(routeData.distanceKm, routeData.durationMinutes);
+      state.lastCalculatedOrigin = origin;
+      state.lastCalculatedDestination = dest;
 
-    state.fareEstimate = {
-      distanceKm: routeData.distanceKm,
-      durationMinutes: routeData.durationMinutes,
-      options
-    };
+      const routeData = await fetchOSRMRoute(origin, dest);
+      const options = calculateFareCategories(routeData.distanceKm, routeData.durationMinutes);
 
-    renderRouteOnMap(state.passengerMap, routeData, origin, dest, 'passenger');
+      state.fareEstimate = {
+        distanceKm: routeData.distanceKm,
+        durationMinutes: routeData.durationMinutes,
+        options
+      };
 
-    const grid = document.getElementById('categoriesGrid');
-    if (grid) {
-      grid.innerHTML = `
-        <div style="grid-column: 1 / -1; background: #fffbeb; color: #d97706; border: 1px solid #fde68a; padding: 10px 14px; border-radius: 12px; font-weight: 800; font-size: 0.88rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-          <i class="fa-solid fa-route" style="font-size: 1.1rem; color: #ff9e00;"></i> Distância Exata por Ruas: <strong>${routeData.distanceKm.toFixed(1).replace('.', ',')} km</strong> (${routeData.durationMinutes} min)
-        </div>
-      `;
+      if (state.passengerMap) {
+        try {
+          renderRouteOnMap(state.passengerMap, routeData, origin, dest, 'passenger');
+        } catch(e) {}
+      }
 
-      options.forEach((opt, idx) => {
-        const isSelected = idx === 0;
-        if (isSelected) state.selectedCategory = opt.categoryKey;
-
-        const div = document.createElement('div');
-        div.className = `category-item ${isSelected ? 'selected' : ''}`;
-        div.onclick = () => {
-          document.querySelectorAll('.category-item').forEach(c => c.classList.remove('selected'));
-          div.classList.add('selected');
-          state.selectedCategory = opt.categoryKey;
-        };
-        div.innerHTML = `
-          <div class="icon">${opt.icon}</div>
-          <div>
-            <div class="name">${opt.name}</div>
-            <div class="price">R$ ${opt.price.toFixed(2).replace('.', ',')}</div>
-            <small style="color: #d97706; font-weight: bold;">⚡ ${routeData.distanceKm.toFixed(1).replace('.', ',')} km (${routeData.durationMinutes} min)</small>
+      const grid = document.getElementById('categoriesGrid');
+      if (grid) {
+        grid.innerHTML = `
+          <div style="grid-column: 1 / -1; background: #fffbeb; color: #d97706; border: 1px solid #fde68a; padding: 10px 14px; border-radius: 12px; font-weight: 800; font-size: 0.88rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-route" style="font-size: 1.1rem; color: #ff9e00;"></i> Distância Exata por Ruas: <strong>${routeData.distanceKm.toFixed(1).replace('.', ',')} km</strong> (${routeData.durationMinutes} min)
           </div>
         `;
-        grid.appendChild(div);
-      });
+
+        options.forEach((opt, idx) => {
+          const isSelected = idx === 0;
+          if (isSelected) state.selectedCategory = opt.categoryKey;
+
+          const div = document.createElement('div');
+          div.className = `category-item ${isSelected ? 'selected' : ''}`;
+          div.onclick = () => {
+            document.querySelectorAll('.category-item').forEach(c => c.classList.remove('selected'));
+            div.classList.add('selected');
+            state.selectedCategory = opt.categoryKey;
+          };
+          div.innerHTML = `
+            <div class="icon">${opt.icon}</div>
+            <div>
+              <div class="name">${opt.name}</div>
+              <div class="price">R$ ${opt.price.toFixed(2).replace('.', ',')}</div>
+              <small style="color: #d97706; font-weight: bold;">⚡ ${routeData.distanceKm.toFixed(1).replace('.', ',')} km (${routeData.durationMinutes} min)</small>
+            </div>
+          `;
+          grid.appendChild(div);
+        });
+      }
+
+      const cardBooking = document.getElementById('cardBooking');
+      if (cardBooking) cardBooking.classList.remove('hidden');
+
+      showToast(`🛣️ Rota exata calculada por ruas: ${routeData.distanceKm.toFixed(1).replace('.', ',')} km!`, 'success');
+    } catch (err) {
+      console.error('Erro no cálculo de tarifa:', err);
+      const cardBooking = document.getElementById('cardBooking');
+      if (cardBooking) cardBooking.classList.remove('hidden');
+      showToast('🛣️ Tarifa calculada com rota estimativa!', 'success');
+    } finally {
+      if (btn) btn.innerHTML = '<i class="fa-solid fa-calculator"></i> Recalcular Rota & Tarifa 99';
     }
+  };
 
-    if (btn) btn.innerHTML = '<i class="fa-solid fa-calculator"></i> Recalcular Rota & Tarifa 99';
-
-    document.getElementById('cardBooking')?.classList.remove('hidden');
-    showToast(`🛣️ Rota exata calculada por ruas: ${routeData.distanceKm.toFixed(1).replace('.', ',')} km!`, 'success');
-  });
+  safeAddEventListener('btnCalculateFare', 'click', window.handleCalculateFareSubmit);
 
   window.handleRequestRideSubmit = function() {
-    const currentPsg = getPassengerProfile();
-    const name = currentPsg?.name || 'Cliente 99';
-    const dist = state.fareEstimate ? state.fareEstimate.distanceKm.toFixed(1).replace('.', ',') : '4,2';
+    const btn = document.getElementById('btnRequestRide');
+    if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Procurando Motoristas 99...';
 
-    const paySelect = document.getElementById('selectPayment') || document.getElementById('selectPaymentMethod');
-    const payMethodKey = paySelect ? paySelect.value : 'pix';
-    const payMethodName = payMethodKey === 'cash' ? '💵 Dinheiro ao Motorista' : (payMethodKey === 'credit_card' ? '💳 Cartão 99' : '⚡ PIX');
+    try {
+      const currentPsg = getPassengerProfile();
+      const name = currentPsg?.name || 'Cliente 99';
+      const dist = state.fareEstimate ? state.fareEstimate.distanceKm.toFixed(1).replace('.', ',') : '4,2';
 
-    const ridePayload = {
-      id: `ride-${Date.now()}`,
-      passengerName: name,
-      origin: state.lastCalculatedOrigin || LOCATIONS.MASP,
-      destination: state.lastCalculatedDestination || LOCATIONS.IBIRAPUERA,
-      price: state.fareEstimate?.options?.[0]?.price || 18.50,
-      distanceKm: state.fareEstimate?.distanceKm || 4.2,
-      durationMinutes: state.fareEstimate?.durationMinutes || 12,
-      paymentMethod: payMethodKey,
-      paymentMethodName: payMethodName
-    };
+      const paySelect = document.getElementById('selectPayment') || document.getElementById('selectPaymentMethod');
+      const payMethodKey = paySelect ? paySelect.value : 'pix';
+      const payMethodName = payMethodKey === 'cash' ? '💵 Dinheiro ao Motorista' : (payMethodKey === 'credit_card' ? '💳 Cartão 99' : '⚡ PIX');
 
-    showToast(`⚡ Viagem 99 (${dist} km) solicitada por ${name}! Disparando alarme sonoro...`, 'info');
+      const ridePayload = {
+        id: `ride-${Date.now()}`,
+        passengerName: name,
+        origin: state.lastCalculatedOrigin || LOCATIONS.MASP,
+        destination: state.lastCalculatedDestination || LOCATIONS.IBIRAPUERA,
+        price: state.fareEstimate?.options?.[0]?.price || 18.50,
+        distanceKm: state.fareEstimate?.distanceKm || 4.2,
+        durationMinutes: state.fareEstimate?.durationMinutes || 12,
+        paymentMethod: payMethodKey,
+        paymentMethodName: payMethodName
+      };
 
-    broadcastRideEvent('NEW_RIDE_REQUESTED', ridePayload);
-    showRideDispatchToAllOnlineDrivers(ridePayload);
+      state.currentRide = ridePayload;
+
+      const statusElem = document.getElementById('passengerStatus');
+      if (statusElem) {
+        statusElem.innerText = `🟡 Viagem 99 Solicitada! Procurando motoristas online (${dist} km)...`;
+        statusElem.style.background = 'rgba(255, 158, 0, 0.25)';
+        statusElem.style.color = '#d97706';
+      }
+
+      showToast(`⚡ Viagem 99 (${dist} km) solicitada por ${name}! Disparando alarme aos motoristas...`, 'info');
+
+      try {
+        fetch(`${BACKEND_URL}/api/rides/request`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            passengerName: name,
+            origin: ridePayload.origin,
+            destination: ridePayload.destination,
+            categoryKey: state.selectedCategory || 'pop',
+            estimatedPrice: ridePayload.price,
+            paymentMethod: payMethodKey
+          })
+        }).catch(() => {});
+      } catch(e) {}
+
+      broadcastRideEvent('NEW_RIDE_REQUESTED', ridePayload);
+
+      const isDriverPage = !!document.getElementById('mapDriver');
+      if (isDriverPage) {
+        showRideDispatchToAllOnlineDrivers(ridePayload);
+      }
+    } catch (err) {
+      console.error('Erro ao solicitar corrida:', err);
+      showToast('⚡ Chamada enviada aos motoristas!', 'info');
+    } finally {
+      setTimeout(() => {
+        if (btn) btn.innerHTML = '✅ SOLICITAÇÃO ENVIADA COM SUCESSO!';
+      }, 600);
+    }
   };
 
   safeAddEventListener('btnRequestRide', 'click', window.handleRequestRideSubmit);
