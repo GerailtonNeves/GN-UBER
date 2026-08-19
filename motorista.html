@@ -55,6 +55,55 @@
         </div>
       </div>
 
+      <!-- BANNER DE ATIVAÇÃO DO SOM DE SIRENE DO MOTORISTA -->
+      <div id="audioUnlockBanner" onclick="window.enableDriverAudio()" style="background: linear-gradient(135deg, #10b981, #059669); color: #fff; padding: 12px 18px; text-align: center; font-weight: 800; border-radius: 14px; margin-bottom: 14px; cursor: pointer; box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3); display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <i class="fa-solid fa-volume-high fa-bounce" style="font-size: 1.3rem;"></i>
+          <span id="audioUnlockText">🔊 CLIQUE AQUI UMA VEZ PARA ATIVAR O SOM DE ALERTA DAS CORRIDAS!</span>
+        </div>
+        <button type="button" style="background: #fff; color: #059669; border: none; padding: 6px 14px; border-radius: 8px; font-weight: 800; font-size: 0.8rem;">🔊 Ativar Áudio</button>
+      </div>
+
+      <!-- CARD INLINE DE CHAMADA DE VIAGEM COM SIRENE DE ÁUDIO (SEM OVERLAY ESCURA) -->
+      <div id="modalRideDispatch" class="hidden" style="background: #fffdf5; border: 4px solid #ff9e00; border-radius: 18px; padding: 18px; margin-bottom: 16px; box-shadow: 0 12px 30px rgba(255, 158, 0, 0.35); animation: pulseBorder 1.5s infinite;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #fde68a; padding-bottom: 10px; margin-bottom: 12px;">
+          <h3 style="color: #d97706; font-size: 1.15rem; font-weight: 900;"><i class="fa-solid fa-bell fa-bounce" style="color: #ff9e00;"></i> 🔔 NOVA CORRIDA DISPONÍVEL! QUEM ACEITAR PRIMEIRO LEVA!</h3>
+          <div id="dispatchTimer" style="background: #ef4444; color: #fff; font-size: 0.9rem; font-weight: 800; padding: 6px 14px; border-radius: 10px;">
+            ⏱️ 20s para aceitar primeiro
+          </div>
+        </div>
+
+        <div id="dispatchDriverName" style="font-size: 0.85rem; font-weight: 800; color: #d97706; margin-bottom: 10px; text-align: center;"></div>
+
+        <div style="background: #ffffff; border: 1px solid #fde68a; border-radius: 12px; padding: 14px; text-align: left; margin-bottom: 16px;">
+          <div style="margin-bottom: 8px;">
+            <small style="color: #64748b; font-weight: 700;">PASSAGEIRO:</small>
+            <div id="dispatchPassengerName" style="font-size: 1.05rem; font-weight: 800; color: #111827;">Cliente 99</div>
+          </div>
+          <div style="margin-bottom: 8px;">
+            <small style="color: #10b981; font-weight: 700;">🟢 EMBARQUE (COLETA):</small>
+            <div id="dispatchOrigin" style="font-weight: 700; color: #111827;">MASP - Av. Paulista</div>
+          </div>
+          <div style="margin-bottom: 8px;">
+            <small style="color: #ef4444; font-weight: 700;">🔴 DESTINO FINAL (ENTREGA):</small>
+            <div id="dispatchDest" style="font-weight: 700; color: #111827;">Parque Ibirapuera</div>
+          </div>
+          <div>
+            <small style="color: #d97706; font-weight: 700;">VALOR DA CORRIDA & DISTÂNCIA EXATA:</small>
+            <div id="dispatchFare" style="font-size: 1.3rem; font-weight: 800; color: #10b981;">R$ 18,50 • 4,2 km</div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+          <button id="btnAcceptRide" onclick="window.acceptRideDispatch()" class="btn-success full-width" style="padding: 16px; font-size: 1.05rem; font-weight: 900; background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);">
+            ⚡ ACEITAR PRIMEIRO & PEGAR A CORRIDA!
+          </button>
+          <button id="btnRejectRide" onclick="window.rejectRideDispatch()" class="btn-secondary" style="padding: 14px; font-weight: 800; background: #fee2e2; color: #ef4444; border-color: #fca5a5;">
+            ❌ IGNORAR
+          </button>
+        </div>
+      </div>
+
       <div class="map-wrap">
         <div id="mapDriver" class="map-container"></div>
       </div>
@@ -190,51 +239,6 @@
           <i class="fa-solid fa-check"></i> Cadastrar e Ficar ONLINE 99
         </button>
       </form>
-    </div>
-  </div>
-
-  <!-- MODAL CHAMADA DE VIAGEM COM SIRENE DE ÁUDIO -->
-  <div class="modal-overlay hidden" id="modalRideDispatch">
-    <div class="modal-card" style="border: 3px solid #ff9e00; background: #fffdf5;">
-      <div class="modal-header" style="border-bottom: 2px solid #fde68a;">
-        <h3 style="color: #d97706; font-size: 1.15rem;"><i class="fa-solid fa-bell fa-bounce" style="color: #ff9e00;"></i> 🔔 NOVA CORRIDA DISPONÍVEL! QUEM ACEITAR PRIMEIRO LEVA!</h3>
-      </div>
-      
-      <div style="text-align: center; padding: 10px 0;">
-        <div id="dispatchDriverName" style="font-size: 0.85rem; font-weight: 800; color: #d97706; margin-bottom: 10px;"></div>
-
-        <div id="dispatchTimer" style="background: #ef4444; color: #fff; font-size: 1rem; font-weight: 800; padding: 8px 16px; border-radius: 10px; margin-bottom: 14px; display: inline-block;">
-          ⏱️ 20s para aceitar primeiro
-        </div>
-
-        <div style="background: #ffffff; border: 1px solid #fde68a; border-radius: 12px; padding: 14px; text-align: left; margin-bottom: 16px;">
-          <div style="margin-bottom: 8px;">
-            <small style="color: #64748b; font-weight: 700;">PASSAGEIRO:</small>
-            <div id="dispatchPassengerName" style="font-size: 1.05rem; font-weight: 800; color: #111827;">Cliente 99</div>
-          </div>
-          <div style="margin-bottom: 8px;">
-            <small style="color: #10b981; font-weight: 700;">🟢 EMBARQUE (COLETA):</small>
-            <div id="dispatchOrigin" style="font-weight: 700; color: #111827;">MASP - Av. Paulista</div>
-          </div>
-          <div style="margin-bottom: 8px;">
-            <small style="color: #ef4444; font-weight: 700;">🔴 DESTINO FINAL (ENTREGA):</small>
-            <div id="dispatchDest" style="font-weight: 700; color: #111827;">Parque Ibirapuera</div>
-          </div>
-          <div>
-            <small style="color: #d97706; font-weight: 700;">VALOR DA CORRIDA & DISTÂNCIA EXATA:</small>
-            <div id="dispatchFare" style="font-size: 1.3rem; font-weight: 800; color: #10b981;">R$ 18,50 • 4,2 km</div>
-          </div>
-        </div>
-
-        <div style="display: flex; gap: 10px;">
-          <button id="btnAcceptRide" onclick="window.acceptRideDispatch()" class="btn-success full-width" style="padding: 16px; font-size: 1.05rem; font-weight: 900; background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);">
-            ⚡ ACEITAR PRIMEIRO & PEGAR A CORRIDA!
-          </button>
-          <button id="btnRejectRide" onclick="window.rejectRideDispatch()" class="btn-secondary" style="padding: 14px; font-weight: 800; background: #fee2e2; color: #ef4444; border-color: #fca5a5;">
-            ❌ IGNORAR
-          </button>
-        </div>
-      </div>
     </div>
   </div>
 

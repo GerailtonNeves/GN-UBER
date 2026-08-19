@@ -73,13 +73,49 @@ let audioCtx = null;
 let sirenOsc = null;
 let sirenGain = null;
 let sirenInterval = null;
+let audioUnlocked = false;
+
+function unlockAudioContext() {
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) {
+      if (!audioCtx) audioCtx = new AudioContextClass();
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      audioUnlocked = true;
+    }
+  } catch(e) {}
+}
+
+document.addEventListener('click', unlockAudioContext);
+document.addEventListener('touchstart', unlockAudioContext);
+
+window.enableDriverAudio = function() {
+  unlockAudioContext();
+  try {
+    playSirenSound();
+    setTimeout(() => {
+      stopSirenSound();
+    }, 400);
+  } catch(e) {}
+
+  const banner = document.getElementById('audioUnlockBanner');
+  if (banner) {
+    banner.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+    const text = document.getElementById('audioUnlockText');
+    if (text) text.innerText = '🔊 SOM DE SIRENE DE CORRIDAS 99 ATIVADO E PRONTO!';
+  }
+  showToast('🔊 Alarme de Áudio da 99 Ativado!', 'success');
+};
 
 function playSirenSound() {
   stopSirenSound();
   try {
+    unlockAudioContext();
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (!AudioContextClass) return;
-    audioCtx = new AudioContextClass();
+    if (!audioCtx) audioCtx = new AudioContextClass();
 
     if (audioCtx.state === 'suspended') {
       audioCtx.resume();
@@ -89,8 +125,8 @@ function playSirenSound() {
     sirenGain = audioCtx.createGain();
 
     sirenOsc.type = 'sawtooth';
-    sirenOsc.frequency.setValueAtTime(800, audioCtx.currentTime);
-    sirenGain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+    sirenOsc.frequency.setValueAtTime(880, audioCtx.currentTime);
+    sirenGain.gain.setValueAtTime(0.45, audioCtx.currentTime);
 
     sirenOsc.connect(sirenGain);
     sirenGain.connect(audioCtx.destination);
@@ -99,12 +135,12 @@ function playSirenSound() {
     let high = true;
     sirenInterval = setInterval(() => {
       if (!sirenOsc || !audioCtx) return;
-      const targetFreq = high ? 1250 : 650;
+      const targetFreq = high ? 1320 : 660;
       try {
-        sirenOsc.frequency.exponentialRampToValueAtTime(targetFreq, audioCtx.currentTime + 0.3);
+        sirenOsc.frequency.exponentialRampToValueAtTime(targetFreq, audioCtx.currentTime + 0.25);
       } catch(e) {}
       high = !high;
-    }, 380);
+    }, 320);
   } catch (err) {
     console.warn('Erro ao reproduzir som da sirene:', err);
   }
