@@ -56,12 +56,19 @@
       </div>
 
       <!-- BANNER DE ATIVAÇÃO DO SOM DE SIRENE DO MOTORISTA -->
-      <div id="audioUnlockBanner" onclick="window.enableDriverAudio()" style="background: linear-gradient(135deg, #10b981, #059669); color: #fff; padding: 12px 18px; text-align: center; font-weight: 800; border-radius: 14px; margin-bottom: 14px; cursor: pointer; box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3); display: flex; align-items: center; justify-content: space-between;">
+      <div id="audioUnlockBanner" onclick="window.enableDriverAudio()" style="background: linear-gradient(135deg, #10b981, #059669); color: #fff; padding: 12px 18px; text-align: center; font-weight: 800; border-radius: 14px; margin-bottom: 10px; cursor: pointer; box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3); display: flex; align-items: center; justify-content: space-between;">
         <div style="display: flex; align-items: center; gap: 10px;">
           <i class="fa-solid fa-volume-high fa-bounce" style="font-size: 1.3rem;"></i>
           <span id="audioUnlockText">🔊 CLIQUE AQUI UMA VEZ PARA ATIVAR O SOM DE ALERTA DAS CORRIDAS!</span>
         </div>
         <button type="button" style="background: #fff; color: #059669; border: none; padding: 6px 14px; border-radius: 8px; font-weight: 800; font-size: 0.8rem;">🔊 Ativar Áudio</button>
+      </div>
+
+      <!-- BOTÃO DE SIMULAÇÃO DE CORRIDA DIRETA -->
+      <div style="margin-bottom: 14px;">
+        <button type="button" onclick="window.simulateIncomingRideTest()" class="btn-primary full-width" style="padding: 12px; font-weight: 800; background: linear-gradient(135deg, #ff9e00, #d97706); border: none; box-shadow: 0 4px 15px rgba(255, 158, 0, 0.3);">
+          ⚡ SIMULAR CHEGADA DE CORRIDA AGORA (TESTAR SIRENE & CARD 99)
+        </button>
       </div>
 
       <!-- CARD INLINE DE CHAMADA DE VIAGEM COM SIRENE DE ÁUDIO (SEM OVERLAY ESCURA) -->

@@ -57,13 +57,14 @@ try {
 } catch(e) {}
 
 function broadcastRideEvent(eventType, payload) {
-  const eventData = { eventType, payload, timestamp: Date.now() };
+  const eventData = { eventType, payload, timestamp: Date.now(), rand: Math.random() };
 
   if (rideBroadcastChannel) {
     try { rideBroadcastChannel.postMessage(eventData); } catch(e) {}
   }
 
   try {
+    localStorage.removeItem('99_BROADCAST_EVENT');
     localStorage.setItem('99_BROADCAST_EVENT', JSON.stringify(eventData));
   } catch(e) {}
 
@@ -71,6 +72,51 @@ function broadcastRideEvent(eventType, payload) {
     try { state.socket.emit(eventType, payload); } catch(e) {}
   }
 }
+
+function ensureDefaultOnlineDriverExists() {
+  let drivers = getPersistedDrivers();
+  if (!drivers || drivers.length === 0) {
+    const defaultDriver = {
+      id: 'drv-99-1',
+      name: 'Carlos Eduardo 99',
+      phone: '(11) 98765-4321',
+      rating: 4.9,
+      status: 'online',
+      verified: true,
+      blocked: false,
+      vehicle: {
+        model: 'Chevrolet Onix 1.0',
+        color: 'Preto',
+        plate: 'BRA-9901',
+        type: 'pop'
+      },
+      location: { lat: -23.561684, lng: -46.655981, heading: 0 },
+      totalEarnings: 342.50,
+      completedRides: 14
+    };
+    savePersistedDriver(defaultDriver);
+    return [defaultDriver];
+  }
+  return drivers;
+}
+
+window.simulateIncomingRideTest = function() {
+  unlockAudioContext();
+  const testRide = {
+    id: `test-ride-${Date.now()}`,
+    passengerName: 'Maria Santos (Simulação 99)',
+    origin: LOCATIONS.MASP,
+    destination: LOCATIONS.IBIRAPUERA,
+    price: 18.50,
+    distanceKm: 4.2,
+    durationMinutes: 12,
+    paymentMethod: 'cash',
+    paymentMethodName: '💵 Dinheiro ao Motorista'
+  };
+
+  showRideDispatchToAllOnlineDrivers(testRide);
+  showToast('⚡ Simulação de Corrida disparada com Sirene!', 'info');
+};
 
 function initCrossTabDispatchListeners() {
   const handleEvent = (data) => {
@@ -1319,8 +1365,157 @@ function renderOnlineFleetOnPassengerMap() {
   });
 }
 
+window.handleCalculateFareSubmit = async function() {
+  const btn = document.getElementById('btnCalculateFare');
+  if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Traçando Rota por Ruas e Curvas...';
+
+  try {
+    let originText = document.getElementById('inputOrigin')?.value?.trim();
+    let destText = document.getElementById('inputDestination')?.value?.trim();
+
+    if (!originText) originText = LOCATIONS.MASP.name;
+    if (!destText) {
+      destText = LOCATIONS.IBIRAPUERA.name;
+      const destInput = document.getElementById('inputDestination');
+      if (destInput) destInput.value = LOCATIONS.IBIRAPUERA.name;
+    }
+
+    const origin = await geocodeAddressText(originText, 'origin');
+    const dest = await geocodeAddressText(destText, 'destination');
+
+    state.lastCalculatedOrigin = origin;
+    state.lastCalculatedDestination = dest;
+
+    const routeData = await fetchOSRMRoute(origin, dest);
+    const options = calculateFareCategories(routeData.distanceKm, routeData.durationMinutes);
+
+    state.fareEstimate = {
+      distanceKm: routeData.distanceKm,
+      durationMinutes: routeData.durationMinutes,
+      options
+    };
+
+    if (state.passengerMap) {
+      try {
+        renderRouteOnMap(state.passengerMap, routeData, origin, dest, 'passenger');
+      } catch(e) {}
+    }
+
+    const grid = document.getElementById('categoriesGrid');
+    if (grid) {
+      grid.innerHTML = `
+        <div style="grid-column: 1 / -1; background: #fffbeb; color: #d97706; border: 1px solid #fde68a; padding: 10px 14px; border-radius: 12px; font-weight: 800; font-size: 0.88rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-route" style="font-size: 1.1rem; color: #ff9e00;"></i> Distância Exata por Ruas: <strong>${routeData.distanceKm.toFixed(1).replace('.', ',')} km</strong> (${routeData.durationMinutes} min)
+        </div>
+      `;
+
+      options.forEach((opt, idx) => {
+        const isSelected = idx === 0;
+        if (isSelected) state.selectedCategory = opt.categoryKey;
+
+        const div = document.createElement('div');
+        div.className = `category-item ${isSelected ? 'selected' : ''}`;
+        div.onclick = () => {
+          document.querySelectorAll('.category-item').forEach(c => c.classList.remove('selected'));
+          div.classList.add('selected');
+          state.selectedCategory = opt.categoryKey;
+        };
+        div.innerHTML = `
+          <div class="icon">${opt.icon}</div>
+          <div>
+            <div class="name">${opt.name}</div>
+            <div class="price">R$ ${opt.price.toFixed(2).replace('.', ',')}</div>
+            <small style="color: #d97706; font-weight: bold;">⚡ ${routeData.distanceKm.toFixed(1).replace('.', ',')} km (${routeData.durationMinutes} min)</small>
+          </div>
+        `;
+        grid.appendChild(div);
+      });
+    }
+
+    const cardBooking = document.getElementById('cardBooking');
+    if (cardBooking) cardBooking.classList.remove('hidden');
+
+    showToast(`🛣️ Rota exata calculada por ruas: ${routeData.distanceKm.toFixed(1).replace('.', ',')} km!`, 'success');
+  } catch (err) {
+    console.error('Erro no cálculo de tarifa:', err);
+    const cardBooking = document.getElementById('cardBooking');
+    if (cardBooking) cardBooking.classList.remove('hidden');
+    showToast('🛣️ Tarifa calculada com rota estimativa!', 'success');
+  } finally {
+    if (btn) btn.innerHTML = '<i class="fa-solid fa-calculator"></i> Recalcular Rota & Tarifa 99';
+  }
+};
+
+window.handleRequestRideSubmit = function() {
+  const btn = document.getElementById('btnRequestRide');
+  if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Procurando Motoristas 99...';
+
+  try {
+    const currentPsg = getPassengerProfile();
+    const name = currentPsg?.name || 'Cliente 99';
+    const dist = state.fareEstimate ? state.fareEstimate.distanceKm.toFixed(1).replace('.', ',') : '4,2';
+
+    const paySelect = document.getElementById('selectPayment') || document.getElementById('selectPaymentMethod');
+    const payMethodKey = paySelect ? paySelect.value : 'pix';
+    const payMethodName = payMethodKey === 'cash' ? '💵 Dinheiro ao Motorista' : (payMethodKey === 'credit_card' ? '💳 Cartão 99' : '⚡ PIX');
+
+    const ridePayload = {
+      id: `ride-${Date.now()}`,
+      passengerName: name,
+      origin: state.lastCalculatedOrigin || LOCATIONS.MASP,
+      destination: state.lastCalculatedDestination || LOCATIONS.IBIRAPUERA,
+      price: state.fareEstimate?.options?.[0]?.price || 18.50,
+      distanceKm: state.fareEstimate?.distanceKm || 4.2,
+      durationMinutes: state.fareEstimate?.durationMinutes || 12,
+      paymentMethod: payMethodKey,
+      paymentMethodName: payMethodName
+    };
+
+    state.currentRide = ridePayload;
+
+    const statusElem = document.getElementById('passengerStatus');
+    if (statusElem) {
+      statusElem.innerText = `🟡 Viagem 99 Solicitada! Procurando motoristas online (${dist} km)...`;
+      statusElem.style.background = 'rgba(255, 158, 0, 0.25)';
+      statusElem.style.color = '#d97706';
+    }
+
+    showToast(`⚡ Viagem 99 (${dist} km) solicitada por ${name}! Disparando alarme aos motoristas...`, 'info');
+
+    try {
+      fetch(`${BACKEND_URL}/api/rides/request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          passengerName: name,
+          origin: ridePayload.origin,
+          destination: ridePayload.destination,
+          categoryKey: state.selectedCategory || 'pop',
+          estimatedPrice: ridePayload.price,
+          paymentMethod: payMethodKey
+        })
+      }).catch(() => {});
+    } catch(e) {}
+
+    broadcastRideEvent('NEW_RIDE_REQUESTED', ridePayload);
+
+    const isDriverPage = !!document.getElementById('mapDriver');
+    if (isDriverPage) {
+      showRideDispatchToAllOnlineDrivers(ridePayload);
+    }
+  } catch (err) {
+    console.error('Erro ao solicitar corrida:', err);
+    showToast('⚡ Chamada enviada aos motoristas!', 'info');
+  } finally {
+    setTimeout(() => {
+      if (btn) btn.innerHTML = '✅ SOLICITAÇÃO ENVIADA COM SUCESSO!';
+    }, 600);
+  }
+};
+
 // ---------------- DOMCONTENTLOADED INITIALIZATION ----------------
 document.addEventListener('DOMContentLoaded', () => {
+  try { ensureDefaultOnlineDriverExists(); } catch(e) {}
   try { initMaps(); } catch(e) {}
   try { loadAdminDrivers(); } catch(e) {}
   try { loadCurrentPassengerUI(); } catch(e) {}
@@ -1332,155 +1527,6 @@ document.addEventListener('DOMContentLoaded', () => {
   setTimeout(renderOnlineFleetOnPassengerMap, 1000);
   setInterval(renderOnlineFleetOnPassengerMap, 3000);
 
-  window.handleCalculateFareSubmit = async function() {
-    const btn = document.getElementById('btnCalculateFare');
-    if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Traçando Rota por Ruas e Curvas...';
-
-    try {
-      let originText = document.getElementById('inputOrigin')?.value?.trim();
-      let destText = document.getElementById('inputDestination')?.value?.trim();
-
-      if (!originText) originText = LOCATIONS.MASP.name;
-      if (!destText) {
-        destText = LOCATIONS.IBIRAPUERA.name;
-        const destInput = document.getElementById('inputDestination');
-        if (destInput) destInput.value = LOCATIONS.IBIRAPUERA.name;
-      }
-
-      const origin = await geocodeAddressText(originText, 'origin');
-      const dest = await geocodeAddressText(destText, 'destination');
-
-      state.lastCalculatedOrigin = origin;
-      state.lastCalculatedDestination = dest;
-
-      const routeData = await fetchOSRMRoute(origin, dest);
-      const options = calculateFareCategories(routeData.distanceKm, routeData.durationMinutes);
-
-      state.fareEstimate = {
-        distanceKm: routeData.distanceKm,
-        durationMinutes: routeData.durationMinutes,
-        options
-      };
-
-      if (state.passengerMap) {
-        try {
-          renderRouteOnMap(state.passengerMap, routeData, origin, dest, 'passenger');
-        } catch(e) {}
-      }
-
-      const grid = document.getElementById('categoriesGrid');
-      if (grid) {
-        grid.innerHTML = `
-          <div style="grid-column: 1 / -1; background: #fffbeb; color: #d97706; border: 1px solid #fde68a; padding: 10px 14px; border-radius: 12px; font-weight: 800; font-size: 0.88rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-            <i class="fa-solid fa-route" style="font-size: 1.1rem; color: #ff9e00;"></i> Distância Exata por Ruas: <strong>${routeData.distanceKm.toFixed(1).replace('.', ',')} km</strong> (${routeData.durationMinutes} min)
-          </div>
-        `;
-
-        options.forEach((opt, idx) => {
-          const isSelected = idx === 0;
-          if (isSelected) state.selectedCategory = opt.categoryKey;
-
-          const div = document.createElement('div');
-          div.className = `category-item ${isSelected ? 'selected' : ''}`;
-          div.onclick = () => {
-            document.querySelectorAll('.category-item').forEach(c => c.classList.remove('selected'));
-            div.classList.add('selected');
-            state.selectedCategory = opt.categoryKey;
-          };
-          div.innerHTML = `
-            <div class="icon">${opt.icon}</div>
-            <div>
-              <div class="name">${opt.name}</div>
-              <div class="price">R$ ${opt.price.toFixed(2).replace('.', ',')}</div>
-              <small style="color: #d97706; font-weight: bold;">⚡ ${routeData.distanceKm.toFixed(1).replace('.', ',')} km (${routeData.durationMinutes} min)</small>
-            </div>
-          `;
-          grid.appendChild(div);
-        });
-      }
-
-      const cardBooking = document.getElementById('cardBooking');
-      if (cardBooking) cardBooking.classList.remove('hidden');
-
-      showToast(`🛣️ Rota exata calculada por ruas: ${routeData.distanceKm.toFixed(1).replace('.', ',')} km!`, 'success');
-    } catch (err) {
-      console.error('Erro no cálculo de tarifa:', err);
-      const cardBooking = document.getElementById('cardBooking');
-      if (cardBooking) cardBooking.classList.remove('hidden');
-      showToast('🛣️ Tarifa calculada com rota estimativa!', 'success');
-    } finally {
-      if (btn) btn.innerHTML = '<i class="fa-solid fa-calculator"></i> Recalcular Rota & Tarifa 99';
-    }
-  };
-
   safeAddEventListener('btnCalculateFare', 'click', window.handleCalculateFareSubmit);
-
-  window.handleRequestRideSubmit = function() {
-    const btn = document.getElementById('btnRequestRide');
-    if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Procurando Motoristas 99...';
-
-    try {
-      const currentPsg = getPassengerProfile();
-      const name = currentPsg?.name || 'Cliente 99';
-      const dist = state.fareEstimate ? state.fareEstimate.distanceKm.toFixed(1).replace('.', ',') : '4,2';
-
-      const paySelect = document.getElementById('selectPayment') || document.getElementById('selectPaymentMethod');
-      const payMethodKey = paySelect ? paySelect.value : 'pix';
-      const payMethodName = payMethodKey === 'cash' ? '💵 Dinheiro ao Motorista' : (payMethodKey === 'credit_card' ? '💳 Cartão 99' : '⚡ PIX');
-
-      const ridePayload = {
-        id: `ride-${Date.now()}`,
-        passengerName: name,
-        origin: state.lastCalculatedOrigin || LOCATIONS.MASP,
-        destination: state.lastCalculatedDestination || LOCATIONS.IBIRAPUERA,
-        price: state.fareEstimate?.options?.[0]?.price || 18.50,
-        distanceKm: state.fareEstimate?.distanceKm || 4.2,
-        durationMinutes: state.fareEstimate?.durationMinutes || 12,
-        paymentMethod: payMethodKey,
-        paymentMethodName: payMethodName
-      };
-
-      state.currentRide = ridePayload;
-
-      const statusElem = document.getElementById('passengerStatus');
-      if (statusElem) {
-        statusElem.innerText = `🟡 Viagem 99 Solicitada! Procurando motoristas online (${dist} km)...`;
-        statusElem.style.background = 'rgba(255, 158, 0, 0.25)';
-        statusElem.style.color = '#d97706';
-      }
-
-      showToast(`⚡ Viagem 99 (${dist} km) solicitada por ${name}! Disparando alarme aos motoristas...`, 'info');
-
-      try {
-        fetch(`${BACKEND_URL}/api/rides/request`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            passengerName: name,
-            origin: ridePayload.origin,
-            destination: ridePayload.destination,
-            categoryKey: state.selectedCategory || 'pop',
-            estimatedPrice: ridePayload.price,
-            paymentMethod: payMethodKey
-          })
-        }).catch(() => {});
-      } catch(e) {}
-
-      broadcastRideEvent('NEW_RIDE_REQUESTED', ridePayload);
-
-      const isDriverPage = !!document.getElementById('mapDriver');
-      if (isDriverPage) {
-        showRideDispatchToAllOnlineDrivers(ridePayload);
-      }
-    } catch (err) {
-      console.error('Erro ao solicitar corrida:', err);
-      showToast('⚡ Chamada enviada aos motoristas!', 'info');
-    } finally {
-      setTimeout(() => {
-        if (btn) btn.innerHTML = '✅ SOLICITAÇÃO ENVIADA COM SUCESSO!';
-      }, 600);
-    }
-  };
-
   safeAddEventListener('btnRequestRide', 'click', window.handleRequestRideSubmit);
 });
