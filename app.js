@@ -3,7 +3,18 @@
    WITH REAL STREET-BY-STREET TURN-BY-TURN ROUTING ENGINE
    ==================================================== */
 
-const BACKEND_URL = 'http://localhost:4000';
+const getBackendUrl = () => {
+  if (typeof window === 'undefined' || !window.location) return 'http://localhost:4000';
+  const host = window.location.hostname;
+  if (host === 'localhost' || host === '127.0.0.1') return 'http://localhost:4000';
+  if (host.startsWith('192.168.') || host.startsWith('10.') || host.startsWith('172.')) {
+    return `http://${host}:4000`;
+  }
+  const savedCloudBackend = localStorage.getItem('99_CLOUD_BACKEND_URL');
+  if (savedCloudBackend) return savedCloudBackend;
+  return `http://192.168.1.45:4000`;
+};
+const BACKEND_URL = getBackendUrl();
 
 const state = {
   passengerMap: null,
