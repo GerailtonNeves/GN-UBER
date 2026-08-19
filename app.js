@@ -383,6 +383,11 @@ window.enableDriverAudio = function() {
 function playSirenSound() {
   stopSirenSound();
 
+  // 0. Ativar Vibração Tátil no Celular do Motorista
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    try { navigator.vibrate([600, 250, 600, 250, 1200]); } catch(e) {}
+  }
+
   // 1. Tocar via Elemento de Áudio HTML5 Nativo
   try {
     const wavUri = createSirenWavDataUri();
@@ -393,13 +398,14 @@ function playSirenSound() {
       const p = globalSirenAudioElem.play();
       if (p !== undefined) {
         p.catch(err => {
-          console.warn('📌 Clique em qualquer lugar no App do Motorista para ativar o som!', err);
+          console.warn('📌 Toque na tela para ativar o som de sirene no celular!', err);
+          showToast('🔊 TOQUE NA TELA DO CELULAR PARA ATIVAR O SOM!', 'warning');
         });
       }
     }
   } catch(e) {}
 
-  // 2. Tocar via Web Audio API Synthesizer
+  // 2. Tocar via Web Audio API Synthesizer (Sintetizador Dual-Tone 880Hz / 1320Hz)
   try {
     unlockAudioContext();
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -412,7 +418,7 @@ function playSirenSound() {
 
       sirenOsc.type = 'sawtooth';
       sirenOsc.frequency.setValueAtTime(880, audioCtx.currentTime);
-      sirenGain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+      sirenGain.gain.setValueAtTime(0.7, audioCtx.currentTime);
 
       sirenOsc.connect(sirenGain);
       sirenGain.connect(audioCtx.destination);
@@ -429,7 +435,7 @@ function playSirenSound() {
       }, 320);
     }
   } catch (err) {
-    console.warn('Erro no sintetizador secundario:', err);
+    console.warn('Erro no sintetizador de sirene:', err);
   }
 }
 
@@ -760,32 +766,45 @@ window.driverCollectPackage = function() {
 };
 
 window.openGPSNavigation = function(type = 'pickup', app = 'google_maps') {
-  const origin = state.lastCalculatedOrigin || LOCATIONS.MASP;
-  const dest = state.lastCalculatedDestination || LOCATIONS.IBIRAPUERA;
-  const target = type === 'pickup' ? origin : dest;
+  let targetObj = null;
+
+  if (state.currentRide) {
+    targetObj = type === 'pickup' ? state.currentRide.origin : state.currentRide.destination;
+  } else {
+    targetObj = type === 'pickup' ? (state.lastCalculatedOrigin || LOCATIONS.MASP) : (state.lastCalculatedDestination || LOCATIONS.IBIRAPUERA);
+  }
+
   const label = type === 'pickup' ? 'Local de Coleta / Embarque' : 'Endereço de Entrega Final';
 
-  const originLat = origin.lat || LOCATIONS.MASP.lat;
-  const originLng = origin.lng || LOCATIONS.MASP.lng;
-  const destLat = dest.lat || LOCATIONS.IBIRAPUERA.lat;
-  const destLng = dest.lng || LOCATIONS.IBIRAPUERA.lng;
-  const targetLat = target.lat || LOCATIONS.IBIRAPUERA.lat;
-  const targetLng = target.lng || LOCATIONS.IBIRAPUERA.lng;
-  const targetName = encodeURIComponent(target.name || label);
+  let rawAddressName = targetObj ? (targetObj.name || targetObj.address || '') : '';
+  const targetLat = targetObj ? targetObj.lat : null;
+  const targetLng = targetObj ? targetObj.lng : null;
 
+  if (!rawAddressName && targetLat && targetLng) {
+    rawAddressName = `${targetLat},${targetLng}`;
+  } else if (!rawAddressName) {
+    rawAddressName = type === 'pickup' ? 'MASP - Av. Paulista, nº 1500' : 'Parque Ibirapuera, nº 250';
+  }
+
+  const encodedQuery = encodeURIComponent(rawAddressName);
   let navUrl = '';
 
   if (app === 'waze') {
-    navUrl = `https://waze.com/ul?ll=${targetLat},${targetLng}&navigate=yes`;
-  } else {
-    if (type === 'destination') {
-      navUrl = `https://www.google.com/maps/dir/?api=1&origin=${originLat},${originLng}&destination=${destLat},${destLng}&destination_place_id=${targetName}&travelmode=driving`;
+    if (targetLat && targetLng) {
+      navUrl = `https://waze.com/ul?ll=${targetLat},${targetLng}&navigate=yes&q=${encodedQuery}`;
     } else {
-      navUrl = `https://www.google.com/maps/dir/?api=1&destination=${targetLat},${targetLng}&destination_place_id=${targetName}&travelmode=driving`;
+      navUrl = `https://waze.com/ul?q=${encodedQuery}&navigate=yes`;
+    }
+  } else {
+    // Google Maps com pesquisa direta pelo ENDEREÇO EXATO digitado com numero
+    if (targetLat && targetLng && rawAddressName) {
+      navUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedQuery}&travelmode=driving`;
+    } else {
+      navUrl = `https://www.google.com/maps/search/?api=1&query=${encodedQuery}`;
     }
   }
 
-  showToast(`🗺️ GPS com Alta Precisão abrindo ${app === 'waze' ? 'Waze' : 'Google Maps'} para ${label}...`, 'info');
+  showToast(`🗺️ GPS com Endereço Exato abrindo ${app === 'waze' ? 'Waze' : 'Google Maps'} para ${rawAddressName}...`, 'info');
 
   try {
     window.open(navUrl, '_blank');
@@ -1612,11 +1631,24 @@ window.handleRequestRideSubmit = function() {
     const payMethodKey = paySelect ? paySelect.value : 'pix';
     const payMethodName = payMethodKey === 'cash' ? '💵 Dinheiro ao Motorista' : (payMethodKey === 'credit_card' ? '💳 Cartão 99' : '⚡ PIX');
 
+    const originNum = document.getElementById('inputOriginNumber')?.value?.trim();
+    const destNum = document.getElementById('inputDestinationNumber')?.value?.trim();
+
+    const origObj = state.lastCalculatedOrigin || { ...LOCATIONS.MASP };
+    const destObj = state.lastCalculatedDestination || { ...LOCATIONS.IBIRAPUERA };
+
+    if (originNum && !origObj.name.includes('nº')) {
+      origObj.name = `${origObj.name}, nº ${originNum}`;
+    }
+    if (destNum && !destObj.name.includes('nº')) {
+      destObj.name = `${destObj.name}, nº ${destNum}`;
+    }
+
     const ridePayload = {
       id: `ride-${Date.now()}`,
       passengerName: name,
-      origin: state.lastCalculatedOrigin || LOCATIONS.MASP,
-      destination: state.lastCalculatedDestination || LOCATIONS.IBIRAPUERA,
+      origin: origObj,
+      destination: destObj,
       price: state.fareEstimate?.options?.[0]?.price || 18.50,
       distanceKm: state.fareEstimate?.distanceKm || 4.2,
       durationMinutes: state.fareEstimate?.durationMinutes || 12,

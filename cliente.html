@@ -26,7 +26,7 @@
 
   <header class="app-header">
     <div class="logo">
-      <div class="logo-icon-wrap"><i class="fa-solid fa-car-side logo-icon"></i></div>
+      <div class="logo-icon-wrap" style="width: 44px; height: 44px; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(255, 158, 0, 0.4);"><img src="assets/icon_passageiro.jpg" alt="Logo 99 3D" style="width: 100%; height: 100%; object-fit: cover;"></div>
       <div class="logo-text">
         <span>99<strong>SUPER-APP</strong></span>
         <small class="version">📱 APP DO PASSAGEIRO & ENTREGAS 99</small>
@@ -56,16 +56,22 @@
         <div id="mapPassenger" class="map-container"></div>
 
         <div class="map-controls-floating">
-          <div class="input-group">
-            <span class="icon" style="color: #10b981;">🟢</span>
-            <input type="text" id="inputOrigin" placeholder="Sua localização atual..." value="MASP - Av. Paulista">
-            <div id="suggestionsOrigin" class="autocomplete-dropdown hidden"></div>
+          <div class="input-group" style="display: flex; gap: 8px;">
+            <div style="flex: 1; position: relative; display: flex; align-items: center;">
+              <span class="icon" style="color: #10b981;">🟢</span>
+              <input type="text" id="inputOrigin" placeholder="Rua / Ponto de Origem..." value="MASP - Av. Paulista" style="width: 100%;">
+              <div id="suggestionsOrigin" class="autocomplete-dropdown hidden"></div>
+            </div>
+            <input type="text" id="inputOriginNumber" placeholder="Nº / Apt" value="1500" style="width: 90px; text-align: center; font-weight: 800; border: 1px solid #d1d5db; border-radius: 10px; background: #fff;">
           </div>
 
-          <div class="input-group">
-            <span class="icon" style="color: #ef4444;">🔴</span>
-            <input type="text" id="inputDestination" placeholder="Para onde você quer ir?" value="Parque Ibirapuera">
-            <div id="suggestionsDest" class="autocomplete-dropdown hidden"></div>
+          <div class="input-group" style="display: flex; gap: 8px;">
+            <div style="flex: 1; position: relative; display: flex; align-items: center;">
+              <span class="icon" style="color: #ef4444;">🔴</span>
+              <input type="text" id="inputDestination" placeholder="Rua / Ponto de Destino..." value="Parque Ibirapuera" style="width: 100%;">
+              <div id="suggestionsDest" class="autocomplete-dropdown hidden"></div>
+            </div>
+            <input type="text" id="inputDestinationNumber" placeholder="Nº / Apt" value="250" style="width: 90px; text-align: center; font-weight: 800; border: 1px solid #d1d5db; border-radius: 10px; background: #fff;">
           </div>
 
           <div class="quick-chips">
