@@ -521,8 +521,66 @@ function dispatchRideToOnlineDriversChain(ride, driverIndex = 0) {
   }
 }
 
-function showRideDispatchModal(ride) {
-  dispatchRideToOnlineDriversChain(ride, 0);
+function animateVehicleOnMap(map, pickupLocation, vehicleType = 'pop', role = 'passenger') {
+  if (!map) return;
+
+  const pickupLat = pickupLocation?.lat || LOCATIONS.MASP.lat;
+  const pickupLng = pickupLocation?.lng || LOCATIONS.MASP.lng;
+
+  const startLat = pickupLat + 0.008;
+  const startLng = pickupLng - 0.007;
+
+  if (role === 'passenger' && state.driverMarkerPassenger) {
+    try { map.removeLayer(state.driverMarkerPassenger); } catch(e) {}
+  }
+  if (role === 'driver' && state.driverMarkerDriver) {
+    try { map.removeLayer(state.driverMarkerDriver); } catch(e) {}
+  }
+
+  const isMoto = vehicleType === 'moto' || vehicleType === 'delivery';
+  const heading = 45;
+  const marker = L.marker([startLat, startLng], { icon: createVehicleIcon(vehicleType, heading) }).addTo(map);
+
+  if (role === 'passenger') state.driverMarkerPassenger = marker;
+  if (role === 'driver') state.driverMarkerDriver = marker;
+
+  let step = 0;
+  const totalSteps = 25;
+  const interval = setInterval(() => {
+    step++;
+    const currentLat = startLat + (pickupLat - startLat) * (step / totalSteps);
+    const currentLng = startLng + (pickupLng - startLng) * (step / totalSteps);
+
+    marker.setLatLng([currentLat, currentLng]);
+
+    if (step >= totalSteps) {
+      clearInterval(interval);
+      const vehicleName = isMoto ? '🏍️ Moto 99' : '🚘 Carro 99';
+      marker.bindPopup(`<b>${vehicleName} Chegou ao Local de Embarque!</b>`).openPopup();
+    }
+  }, 400);
+}
+
+function handleRideAcceptedWinner(payload) {
+  stopSirenSound();
+  const modal = document.getElementById('modalRideDispatch');
+  if (modal) modal.classList.add('hidden');
+
+  const vehicleEmoji = payload?.vehicleEmoji || '🚗 Veículo 99';
+  const passStatus = document.getElementById('passengerStatus');
+  if (passStatus) {
+    passStatus.innerText = `🚗 ${vehicleEmoji} (${payload?.driverName || 'Motorista 99'}) aceitou e está a caminho do embarque!`;
+    passStatus.style.background = 'rgba(16, 185, 129, 0.22)';
+    passStatus.style.color = '#059669';
+  }
+
+  if (state.passengerMap) {
+    const origin = state.lastCalculatedOrigin || LOCATIONS.MASP;
+    const vehicleType = payload?.vehicleType || 'pop';
+    animateVehicleOnMap(state.passengerMap, origin, vehicleType, 'passenger');
+  }
+
+  showToast(`🎉 ${vehicleEmoji} de ${payload?.driverName || 'Motorista 99'} aceitou a corrida! Acompanhe a aproximação no mapa.`, 'success');
 }
 
 window.acceptRideDispatch = function() {
@@ -532,15 +590,20 @@ window.acceptRideDispatch = function() {
   const modal = document.getElementById('modalRideDispatch');
   if (modal) modal.classList.add('hidden');
 
-  const driver = state.assignedDriver || { name: 'Motorista 99' };
+  const driver = state.assignedDriver || { name: 'Carlos Eduardo 99', vehicle: { type: 'pop', model: 'Chevrolet Onix 1.0' } };
   const passengerName = document.getElementById('dispatchPassengerName')?.innerText || 'Cliente 99';
   const originName = document.getElementById('dispatchOrigin')?.innerText || 'MASP - Av. Paulista';
   const destName = document.getElementById('dispatchDest')?.innerText || 'Parque Ibirapuera';
   const fareVal = document.getElementById('dispatchFare')?.innerText || 'R$ 18,50';
 
-  // NOTIFICAR EM TEMPO REAL TODAS AS ABAS/DISPOSITIVOS DO CLIENTE QUE A CORRIDA FOI ACEITA!
+  const isMoto = (driver.vehicle?.type === 'moto' || driver.vehicle?.model?.toLowerCase().includes('moto') || state.selectedCategory === 'moto');
+  const vehicleType = isMoto ? 'moto' : 'pop';
+  const vehicleEmoji = isMoto ? '🏍️ Moto 99' : '🚘 Carro 99';
+
   broadcastRideEvent('RIDE_ACCEPTED_BY_DRIVER', {
     driverName: driver.name,
+    vehicleType,
+    vehicleEmoji,
     passengerName,
     fareVal
   });
@@ -560,37 +623,43 @@ window.acceptRideDispatch = function() {
     if (destElem) destElem.innerText = destName;
     if (fareElem) fareElem.innerText = fareVal;
     if (statusElem) {
-      statusElem.innerText = '🟡 Motorista a Caminho';
+      statusElem.innerText = `🟡 ${vehicleEmoji} a Caminho do Embarque`;
       statusElem.style.background = '#10b981';
     }
   }
 
-  // 2. Traçar a Rota GPS no Mapa do Motorista
+  // ABRIR E FOCAR O MAPA COM OS DADOS PREENCHIDOS AUTOMATICAMENTE
+  const mapElem = document.getElementById('mapDriver');
+  if (mapElem) {
+    mapElem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
   if (state.driverMap) {
-    setTimeout(() => {
+    setTimeout(async () => {
       state.driverMap.invalidateSize();
       const origin = state.lastCalculatedOrigin || LOCATIONS.MASP;
       const dest = state.lastCalculatedDestination || LOCATIONS.IBIRAPUERA;
-      const routeData = {
-        coordinates: [
-          [origin.lat, origin.lng],
-          [(origin.lat + dest.lat) / 2 + 0.002, (origin.lng + dest.lng) / 2 - 0.002],
-          [dest.lat, dest.lng]
-        ]
-      };
+
+      const routeData = await fetchOSRMRoute(origin, dest);
       renderRouteOnMap(state.driverMap, routeData, origin, dest, 'driver');
+
+      animateVehicleOnMap(state.driverMap, origin, vehicleType, 'driver');
     }, 200);
   }
 
-  // 3. Atualizar Status no App do Cliente se Aberto
   const passStatus = document.getElementById('passengerStatus');
   if (passStatus) {
-    passStatus.innerText = '🚗 Motorista 99 Aceitou e está a caminho!';
+    passStatus.innerText = `🚗 ${vehicleEmoji} (${driver.name}) aceitou e está a caminho do seu local de coleta!`;
     passStatus.style.background = 'rgba(16, 185, 129, 0.18)';
     passStatus.style.color = '#10b981';
   }
 
-  showToast(`🎉 Corrida 99 Aceita por ${driver.name}! Navegação GPS ativada! Dirija-se ao local de embarque.`, 'success');
+  if (state.passengerMap) {
+    const origin = state.lastCalculatedOrigin || LOCATIONS.MASP;
+    animateVehicleOnMap(state.passengerMap, origin, vehicleType, 'passenger');
+  }
+
+  showToast(`🎉 Corrida Aceita por ${driver.name}! GPS com Rota de Coleta e Entrega aberto automaticamente no Mapa.`, 'success');
 };
 
 // ---------------- CONTATO E SUPORTE 99 ----------------
