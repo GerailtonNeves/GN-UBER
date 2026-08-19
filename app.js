@@ -306,8 +306,7 @@ window.acceptRideDispatch = function() {
     passStatus.style.color = '#10b981';
   }
 
-  showToast(`🎉 Corrida 99 Aceita por ${driver.name}!`, 'success');
-  alert(`🎉 CORRIDA 99 ACEITA COM SUCESSO POR ${driver.name.toUpperCase()}!\n\nNavegação GPS ativada! Dirija-se ao local de embarque do cliente.`);
+  showToast(`🎉 Corrida 99 Aceita por ${driver.name}! Navegação GPS ativada! Dirija-se ao local de embarque.`, 'success');
 };
 
 // ---------------- CONTATO E SUPORTE 99 ----------------
@@ -315,17 +314,14 @@ window.callPassenger = function() {
   const currentPsg = getPassengerProfile();
   const phone = currentPsg?.phone || '(11) 98888-7777';
   showToast(`📞 Ligando para o cliente: ${phone}...`, 'info');
-  alert(`📞 LIGANDO PARA O CLIENTE:\n\nNúmero: ${phone}\n\nConectando chamada telefônica...`);
 };
 
 window.openChatWithPassenger = function() {
   showToast('💬 Abrindo Chat 99 em tempo real com o cliente...', 'info');
-  alert('💬 CHAT 99 EM TEMPO REAL:\n\nVocê pode trocar mensagens de texto diretas com o passageiro durante a corrida.');
 };
 
 window.openSupport99 = function() {
   showToast('🛡️ Abrindo Central de Suporte 99 24h...', 'info');
-  alert('🛡️ CENTRAL DE SUPORTE 99 24 HORAS:\n\nEquipe de atendimento pronta para ajudar com ocorrências, emergências e dúvidas financeiras.');
 };
 
 window.saveDriverPaymentPrefs = function() {
@@ -351,8 +347,7 @@ window.driverArrivedAtPickup = function() {
   if (passStatus) {
     passStatus.innerText = '📍 Seu motorista 99 chegou ao local de coleta!';
   }
-  showToast('📍 Você chegou ao local de embarque!', 'info');
-  alert('📍 VOCÊ CHEGOU AO LOCAL DE EMBARQUE/COLETA!\n\nAguarde o cliente ou receba o pacote.');
+  showToast('📍 Você chegou ao local de embarque! Aguarde o cliente.', 'info');
 };
 
 window.driverCollectPackage = function() {
@@ -397,7 +392,6 @@ window.driverPackageCollected = function() {
   }
 
   showToast('✅ Coleta Concluída! Rota do Destino traçada no GPS.', 'success');
-  alert(`✅ ENCOMENDA / PASSAGEIRO COLETADO COM SUCESSO!\n\nO mapa foi atualizado e preenchido com a Rota GPS até o Endereço de ENTREGA do Destino Final!`);
 };
 
 window.driverCompleteRide = function() {
@@ -438,11 +432,10 @@ function finishRideCleanly(fareVal, cashConfirmed = false) {
   }
 
   const msg = cashConfirmed
-    ? `💵 PAGAMENTO EM DINHEIRO RECEBIDO E CONFIRMADO!\n\nValor Recebido: ${fareVal}\n\nViagem 99 Concluída com Sucesso!`
-    : `🏁 VIAGEM CONCLUÍDA E ENTREGUE COM SUCESSO!\n\nValor creditado: ${fareVal}\n\nObrigado por prestar um excelente serviço na 99!`;
+    ? `💵 PAGAMENTO EM DINHEIRO RECEBIDO!\nValor: ${fareVal}`
+    : `🏁 VIAGEM CONCLUÍDA!\nValor creditado: ${fareVal}`;
 
-  showToast('🏁 Viagem concluída com sucesso!', 'success');
-  alert(msg);
+  showToast(`🏁 ${msg}`, 'success');
 }
 
 window.rejectRideDispatch = function() {
@@ -1183,8 +1176,7 @@ document.addEventListener('DOMContentLoaded', () => {
       paymentMethodName: payMethodName
     };
 
-    showToast(`⚡ Viagem 99 (${dist} km) solicitada por ${name}!`, 'info');
-    alert(`🎉 Viagem 99 Solicitada com Sucesso por ${name}!\n\n🔔 Disparando alerta em TEMPO REAL com SIRENE para TODOS os motoristas ONLINE...`);
+    showToast(`⚡ Viagem 99 (${dist} km) solicitada por ${name}! Disparando alarme sonoro...`, 'info');
 
     broadcastRideEvent('NEW_RIDE_REQUESTED', ridePayload);
     showRideDispatchToAllOnlineDrivers(ridePayload);
