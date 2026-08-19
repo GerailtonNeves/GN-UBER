@@ -362,22 +362,33 @@ document.addEventListener('click', () => {
 });
 document.addEventListener('touchstart', unlockAudioContext);
 
+let wakeLock = null;
+async function requestScreenWakeLock() {
+  try {
+    if ('wakeLock' in navigator) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      console.log('💡 Tela do Celular mantida acesa para o Motorista!');
+    }
+  } catch(e) {}
+}
+
 window.enableDriverAudio = function() {
   unlockAudioContext();
+  requestScreenWakeLock();
   try {
     playSirenSound();
     setTimeout(() => {
       stopSirenSound();
-    }, 600);
+    }, 800);
   } catch(e) {}
 
   const banner = document.getElementById('audioUnlockBanner');
   if (banner) {
     banner.style.background = 'linear-gradient(135deg, #10b981, #059669)';
     const text = document.getElementById('audioUnlockText');
-    if (text) text.innerText = '🔊 SOM DE SIRENE DE CORRIDAS 99 ATIVADO E PRONTO!';
+    if (text) text.innerText = '🔊 SOM DE SIRENE & VIBRAÇÃO NO 4G/5G ATIVADOS E PRONTOS!';
   }
-  showToast('🔊 Alarme de Áudio da 99 Ativado!', 'success');
+  showToast('🔊 Alarme de Áudio & Tela Acesa Ativados para 4G/5G!', 'success');
 };
 
 function playSirenSound() {
