@@ -1893,24 +1893,133 @@ function renderAdminZonesTable(zones) {
   `).join('');
 }
 
-function loadAdminConfig() {
+// ---------------- FLUXO DE DEVOLUÇÃO DE ENCOMENDA (DESTINATÁRIO AUSENTE) ----------------
+window.driverRequestReturn = function() {
+  if (!state.currentRide) {
+    showToast('⚠️ Nenhuma corrida ativa para solicitar devolução.', 'warning');
+    return;
+  }
+
+  const rideId = state.currentRide.id;
+  state.currentRide.returnStatus = 'REQUESTED';
+  state.currentRide.status = 'RETURN_REQUESTED';
+
+  const statusElem = document.getElementById('driverActiveStatus');
+  if (statusElem) {
+    statusElem.innerText = '🚨 Devolução Solicitada ao Suporte';
+    statusElem.style.background = '#dc2626';
+  }
+
+  const passStatus = document.getElementById('passengerStatus');
+  if (passStatus) {
+    passStatus.innerText = '⚠️ Destinatário ausente no destino! Devolução solicitada ao Suporte 99...';
+    passStatus.style.background = 'rgba(239, 68, 68, 0.2)';
+    passStatus.style.color = '#dc2626';
+  }
+
+  showToast('🚨 Solicitação de Devolução enviada ao Suporte 99! Aguarde a aprovação.', 'warning');
+
+  // Notificar backend
   if (BACKEND_URL) {
-    fetch(`${BACKEND_URL}/api/config`).then(r => r.json()).then(cfg => {
-      if (cfg) {
-        if (cfg.basePrice && document.getElementById('inputAdminBasePrice')) {
-          document.getElementById('inputAdminBasePrice').value = cfg.basePrice;
-        }
-        if (cfg.pricePerKm && document.getElementById('inputAdminPricePerKm')) {
-          document.getElementById('inputAdminPricePerKm').value = cfg.pricePerKm;
-        }
-        if (cfg.pricePerMin && document.getElementById('inputAdminPricePerMin')) {
-          document.getElementById('inputAdminPricePerMin').value = cfg.pricePerMin;
-        }
-        if (cfg.platformFeePercent && document.getElementById('inputAdminPlatformFee')) {
-          document.getElementById('inputAdminPlatformFee').value = cfg.platformFeePercent;
-        }
-        renderAdminZonesTable(cfg.promoZones || []);
-      }
+    fetch(`${BACKEND_URL}/api/rides/${rideId}/return-request`, { method: 'POST' }).catch(() => {});
+  }
+  broadcastRideEvent('RETURN_RIDE_REQUESTED', state.currentRide);
+};
+
+window.adminApproveReturn = function(rideId) {
+  if (BACKEND_URL) {
+    fetch(`${BACKEND_URL}/api/rides/${rideId}/return-approve`, { method: 'POST' })
+      .then(r => r.json())
+      .then(() => {
+        showToast('✅ Devolução Aprovada pelo Suporte com sucesso!', 'success');
+        loadAdminReturnsList();
+      })
+      .catch(() => {});
+  }
+  if (state.currentRide && String(state.currentRide.id) === String(rideId)) {
+    state.currentRide.returnStatus = 'APPROVED_RETURN_IN_PROGRESS';
+    state.currentRide.status = 'RETURN_IN_PROGRESS';
+    broadcastRideEvent('RETURN_RIDE_APPROVED', state.currentRide);
+  }
+};
+
+window.driverConfirmReturnCompleted = function() {
+  const name = document.getElementById('inputReturnReceiverName')?.value?.trim();
+  const phone = document.getElementById('inputReturnReceiverPhone')?.value?.trim();
+
+  if (!name || !phone) {
+    showToast('⚠️ Por favor preencha o Nome e Telefone do recebedor da devolução!', 'warning');
+    return;
+  }
+
+  if (state.currentRide) {
+    state.currentRide.returnStatus = 'RETURNED_SUCCESS';
+    state.currentRide.status = 'RETURNED_COMPLETED';
+    state.currentRide.returnReceiverName = name;
+    state.currentRide.returnReceiverPhone = phone;
+
+    if (BACKEND_URL) {
+      fetch(`${BACKEND_URL}/api/rides/${state.currentRide.id}/return-complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ receiverName: name, receiverPhone: phone })
+      }).catch(() => {});
+    }
+
+    broadcastRideEvent('RETURN_RIDE_COMPLETED', state.currentRide);
+  }
+
+  const modal = document.getElementById('modalReturnReceiver');
+  if (modal) modal.classList.add('hidden');
+
+  const activeCard = document.getElementById('cardDriverActiveRide');
+  if (activeCard) activeCard.classList.add('hidden');
+
+  const statusElem = document.getElementById('driverActiveStatus');
+  if (statusElem) {
+    statusElem.innerText = '✅ Devolução Concluída';
+    statusElem.style.background = '#10b981';
+  }
+
+  showToast(`✅ Devolução entregue com sucesso para ${name} (${phone})!`, 'success');
+};
+
+function renderAdminReturnsTable(ridesList) {
+  const tbody = document.getElementById('adminReturnsTable');
+  if (!tbody) return;
+
+  const returnRides = (ridesList || []).filter(r => r.returnStatus && r.returnStatus !== 'NONE');
+
+  if (returnRides.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #6b7280; padding: 16px;">Nenhuma solicitação de devolução pendente no momento.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = returnRides.map(r => `
+    <tr>
+      <td><strong>${r.id}</strong></td>
+      <td><strong>${r.passengerName || 'Cliente 99'}</strong></td>
+      <td><span style="color: #10b981; font-weight: 700;">🟢 ${r.origin?.name || 'Local de Coleta'}</span></td>
+      <td><span style="color: #ef4444; font-weight: 700;">🔴 ${r.destination?.name || 'Destino (Ausente)'}</span></td>
+      <td>
+        ${r.returnStatus === 'REQUESTED' ? '<span style="background: #fef2f2; color: #dc2626; padding: 4px 10px; border-radius: 10px; font-weight: 800;">🚨 DEVOLUÇÃO SOLICITADA</span>' : ''}
+        ${r.returnStatus === 'APPROVED_RETURN_IN_PROGRESS' ? '<span style="background: #f3e8ff; color: #7c3aed; padding: 4px 10px; border-radius: 10px; font-weight: 800;">🔄 EM RETORNO / DEVOLUÇÃO</span>' : ''}
+        ${r.returnStatus === 'RETURNED_SUCCESS' ? '<span style="background: #d1fae5; color: #047857; padding: 4px 10px; border-radius: 10px; font-weight: 800;">✅ DEVOLUÇÃO CONCLUÍDA</span>' : ''}
+      </td>
+      <td>
+        ${r.returnReceiverName ? `<strong>${r.returnReceiverName}</strong><br><small style="color: #64748b;">${r.returnReceiverPhone || ''}</small>` : '<small style="color: #9ca3af;">Aguardando retorno</small>'}
+      </td>
+      <td>
+        ${r.returnStatus === 'REQUESTED' ? `<button type="button" onclick="window.adminApproveReturn('${r.id}')" style="background: #7c3aed; color: #fff; border: none; padding: 8px 14px; border-radius: 8px; font-weight: 800; cursor: pointer;">🔄 APROVAR DEVOLUÇÃO</button>` : '<span style="color: #10b981; font-weight: 800;">Processado</span>'}
+      </td>
+    </tr>
+  `).join('');
+}
+
+function loadAdminReturnsList() {
+  if (BACKEND_URL) {
+    fetch(`${BACKEND_URL}/api/rides/pending`).then(r => r.json()).then(rides => {
+      renderAdminReturnsTable(rides);
     }).catch(() => {});
   }
 }
@@ -1921,11 +2030,30 @@ document.addEventListener('DOMContentLoaded', () => {
   try { initMaps(); } catch(e) {}
   try { loadAdminDrivers(); } catch(e) {}
   try { loadAdminConfig(); } catch(e) {}
+  try { loadAdminReturnsList(); } catch(e) {}
   try { loadCurrentPassengerUI(); } catch(e) {}
   try { initCrossTabDispatchListeners(); } catch(e) {}
 
   try { setupAddressAutocomplete('inputOrigin', 'suggestionsOrigin', 'origin'); } catch(e) {}
   try { setupAddressAutocomplete('inputDestination', 'suggestionsDest', 'destination'); } catch(e) {}
+
+  // Auto-cálculo automático de rota por ruas e quilômetros ao digitar ou alterar o endereço/número
+  let autoCalcTimeout = null;
+  const triggerAutoCalc = () => {
+    if (autoCalcTimeout) clearTimeout(autoCalcTimeout);
+    autoCalcTimeout = setTimeout(() => {
+      try { window.handleCalculateFareSubmit(); } catch(e) {}
+    }, 600);
+  };
+
+  ['inputOrigin', 'inputOriginNumber', 'inputDestination', 'inputDestinationNumber'].forEach(id => {
+    const elem = document.getElementById(id);
+    if (elem) {
+      elem.addEventListener('input', triggerAutoCalc);
+      elem.addEventListener('change', triggerAutoCalc);
+      elem.addEventListener('blur', triggerAutoCalc);
+    }
+  });
 
   setTimeout(renderOnlineFleetOnPassengerMap, 1000);
   setInterval(renderOnlineFleetOnPassengerMap, 3000);

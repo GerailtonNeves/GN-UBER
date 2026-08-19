@@ -276,6 +276,50 @@ app.post('/api/rides/request', (req, res) => {
   res.status(201).json(ride);
 });
 
+// SOLICITAR DEVOLUÇÃO DA ENCOMENDA PELO MOTORISTA (DESTINATÁRIO AUSENTE)
+app.post('/api/rides/:id/return-request', (req, res) => {
+  const ride = rides.find(r => String(r.id) === String(req.params.id));
+  if (!ride) return res.status(404).json({ error: 'Corrida não encontrada' });
+
+  ride.returnStatus = 'REQUESTED';
+  ride.status = 'RETURN_REQUESTED';
+  saveDataToDisk();
+  io.emit('ride_updated', ride);
+  io.emit('RETURN_RIDE_REQUESTED', ride);
+  res.json({ message: 'Solicitação de devolução enviada ao Suporte 99!', ride });
+});
+
+// APROVAR DEVOLUÇÃO DA ENCOMENDA PELO SUPORTE (ADMIN)
+app.post('/api/rides/:id/return-approve', (req, res) => {
+  const ride = rides.find(r => String(r.id) === String(req.params.id));
+  if (!ride) return res.status(404).json({ error: 'Corrida não encontrada' });
+
+  ride.returnStatus = 'APPROVED_RETURN_IN_PROGRESS';
+  ride.status = 'RETURN_IN_PROGRESS';
+  saveDataToDisk();
+  io.emit('ride_updated', ride);
+  io.emit('RETURN_RIDE_APPROVED', ride);
+  res.json({ message: 'Devolução aprovada pelo Suporte!', ride });
+});
+
+// CONFIRMAR DEVOLUÇÃO CONCLUÍDA PELO MOTORISTA (NOME E TELEFONE DO RECEBEDOR)
+app.post('/api/rides/:id/return-complete', (req, res) => {
+  const ride = rides.find(r => String(r.id) === String(req.params.id));
+  if (!ride) return res.status(404).json({ error: 'Corrida não encontrada' });
+
+  const { receiverName, receiverPhone } = req.body;
+  ride.returnStatus = 'RETURNED_SUCCESS';
+  ride.status = 'RETURNED_COMPLETED';
+  ride.returnReceiverName = receiverName || 'Pessoa no local de origem';
+  ride.returnReceiverPhone = receiverPhone || '(11) 98765-4321';
+  ride.returnCompletedAt = new Date();
+
+  saveDataToDisk();
+  io.emit('ride_updated', ride);
+  io.emit('RETURN_RIDE_COMPLETED', ride);
+  res.json({ message: 'Devolução concluída e registrada com sucesso!', ride });
+});
+
 // WebSockets 99 Real-time
 io.on('connection', (socket) => {
   console.log(`🔌 Novo cliente conectado via WebSocket: ${socket.id}`);

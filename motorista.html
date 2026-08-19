@@ -170,7 +170,7 @@
         </div>
 
         <!-- BOTÕES DE AÇÕES DA CORRIDA E ETAPAS DE COLETA PELO MOTORISTA -->
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;">
           <button id="btnDriverArrived" onclick="window.driverArrivedAtPickup()" class="btn-primary" style="flex: 1; background: #0284c7; font-size: 0.82rem; padding: 12px;">
             📍 CHEGUEI AO EMBARQUE
           </button>
@@ -182,6 +182,14 @@
           </button>
           <button id="btnDriverComplete" onclick="window.driverCompleteRide()" class="btn-primary" style="flex: 1; background: linear-gradient(135deg, #10b981, #059669); font-size: 0.82rem; padding: 12px;">
             🏁 CONCLUIR VIAGEM & RECEBER
+          </button>
+        </div>
+
+        <!-- BOTAO DE SEGURAÇA EM CASO DE DESTINATARIO AUSENTE (DEVOLUÇÃO AO ORIGEM) -->
+        <div style="background: #fef2f2; border: 2px solid #fca5a5; border-radius: 12px; padding: 10px; text-align: center;">
+          <small style="color: #991b1b; font-weight: 800; display: block; margin-bottom: 6px;">⚠️ Ninguém para receber a entrega no local?</small>
+          <button type="button" onclick="window.driverRequestReturn()" class="btn-primary" style="background: #dc2626; color: #fff; width: 100%; font-size: 0.88rem; padding: 10px; font-weight: 800; border: none; border-radius: 8px;">
+            🚨 Destinatário Ausente / Não Encontrado (Solicitar Devolução ao Suporte)
           </button>
         </div>
       </div>
@@ -282,6 +290,35 @@
 
         <button onclick="window.confirmCashReceived()" class="btn-success full-width" style="padding: 16px; font-size: 1.1rem; font-weight: 800; background: linear-gradient(135deg, #10b981, #047857); box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);">
           💵 CONFIRMO QUE RECEBI O DINHEIRO DO CLIENTE
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL REGISTRO DE RECEBEDOR DA DEVOLUÇÃO -->
+  <div class="modal-overlay hidden" id="modalReturnReceiver">
+    <div class="modal-card" style="border: 3px solid #8b5cf6; background: #f5f3ff;">
+      <div class="modal-header" style="border-bottom: 2px solid #ddd6fe;">
+        <h3 style="color: #6d28d9; font-size: 1.15rem;"><i class="fa-solid fa-user-check"></i> 🔄 REGISTRAR RECEBEDOR DA DEVOLUÇÃO</h3>
+      </div>
+      
+      <div style="padding: 14px 0;">
+        <p style="font-size: 0.85rem; color: #4c1d95; font-weight: 700; margin-bottom: 12px;">
+          📍 Digite abaixo o Nome e Telefone da pessoa no local de origem que recebeu a encomenda de volta para confirmação:
+        </p>
+
+        <div class="form-group" style="margin-bottom: 10px;">
+          <label style="font-weight: 800; color: #111827;">Nome da Pessoa que Recebeu a Devolução:</label>
+          <input type="text" id="inputReturnReceiverName" placeholder="Ex: Roberto da Silva (Porteiro / Solicitante)" required style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #c4b5fd;">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label style="font-weight: 800; color: #111827;">Telefone / WhatsApp de Contato do Recebedor:</label>
+          <input type="text" id="inputReturnReceiverPhone" placeholder="Ex: (11) 98888-7777" required style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #c4b5fd;">
+        </div>
+
+        <button type="button" onclick="window.driverConfirmReturnCompleted()" class="btn-primary full-width" style="padding: 16px; font-size: 1.05rem; font-weight: 800; background: linear-gradient(135deg, #7c3aed, #5b21b6); box-shadow: 0 10px 20px rgba(124, 58, 237, 0.3);">
+          ✅ CONFIRMAR DEVOLUÇÃO CONCLUÍDA & REGISTRAR
         </button>
       </div>
     </div>
