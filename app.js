@@ -366,21 +366,21 @@ function showRideDispatchToAllOnlineDrivers(ride) {
     if (fareElem) fareElem.innerText = `${priceFormatted} • 🛣️ ${distText} • ${ride.paymentMethodName || '⚡ PIX'}`;
     if (driverNameElem) driverNameElem.innerText = `🔔 NOVA CORRIDA DISPONÍVEL PARA TODOS OS MOTORISTAS ONLINE! QUEM ACEITAR PRIMEIRO LEVA!`;
 
-    let countdown = 20;
+    let countdown = 5;
     const timerElem = document.getElementById('dispatchTimer');
-    if (timerElem) timerElem.innerText = `⏱️ ${countdown}s para aceitar primeiro`;
+    if (timerElem) timerElem.innerText = `⏱️ ${countdown}s para aceitar em 1º lugar`;
 
     if (state.dispatchTimerInterval) clearInterval(state.dispatchTimerInterval);
 
     state.dispatchTimerInterval = setInterval(() => {
       countdown--;
-      if (timerElem) timerElem.innerText = `⏱️ ${countdown}s para aceitar primeiro`;
+      if (timerElem) timerElem.innerText = `⏱️ ${countdown}s para aceitar em 1º lugar`;
 
       if (countdown <= 0) {
         clearInterval(state.dispatchTimerInterval);
         stopSirenSound();
         if (card) card.classList.add('hidden');
-        showToast('⏰ A chamada de entrega expirou sem aceite.', 'warning');
+        showToast('⏰ A chamada de entrega expirou (5s).', 'warning');
       }
     }, 1000);
   }
@@ -978,21 +978,22 @@ window.openGPSNavigation = function(type = 'pickup', app = 'google_maps') {
   const encodedQuery = encodeURIComponent(rawAddressName);
   let navUrl = '';
 
-  const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
-
   if (app === 'waze') {
     navUrl = `https://waze.com/ul?q=${encodedQuery}&navigate=yes`;
   } else {
-    // UNIVERSAL GOOGLE MAPS DESTINATION ADDRESS SCHEME (Navegação Exata pelo Endereço Digitado)
-    navUrl = `https://maps.google.com/maps?daddr=${encodedQuery}`;
+    // NAVEGAÇÃO DIRETA DE ALTA PRECISÃO NO GOOGLE MAPS (RUA E NÚMERO EXATOS)
+    navUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedQuery}&travelmode=driving`;
   }
 
-  showToast(`🗺️ Abrindo GPS para: ${rawAddressName}...`, 'info');
+  showToast(`🗺️ GPS com Rota Exata (100% Precisão) abrindo para: ${rawAddressName}...`, 'info');
 
   try {
-    window.open(navUrl, '_blank');
+    const w = window.open(navUrl, '_blank');
+    if (!w || w.closed || typeof w.closed === 'undefined') {
+      window.location.href = navUrl;
+    }
   } catch(e) {
-    window.location.assign(navUrl);
+    window.location.href = navUrl;
   }
 };
 
