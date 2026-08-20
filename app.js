@@ -1727,57 +1727,112 @@ async function geocodeAddressText(query, type) {
   };
 }
 
+const PRESET_SUGGESTIONS_DB = [
+  { street: 'Rua Sérgio Roberto da Silva', city: 'Mogi das Cruzes / SP' },
+  { street: 'Avenida Mogi das Cruzes', city: 'Suzano / SP' },
+  { street: 'MASP - Av. Paulista, 1500', city: 'Bela Vista - São Paulo / SP' },
+  { street: 'Parque Ibirapuera - Av. Pedro Álvares Cabral', city: 'Vila Mariana - São Paulo / SP' },
+  { street: 'Avenida Paulista', city: 'Bela Vista - São Paulo / SP' },
+  { street: 'Rua Augusta', city: 'Consolação - São Paulo / SP' },
+  { street: 'Avenida Faria Lima', city: 'Itaim Bibi - São Paulo / SP' },
+  { street: 'Rua Oscar Freire', city: 'Jardins - São Paulo / SP' },
+  { street: 'Aeroporto Internacional de Guarulhos (GRU)', city: 'Guarulhos / SP' },
+  { street: 'Aeroporto de Congonhas (CGH)', city: 'São Paulo / SP' },
+  { street: 'Estação da Luz - Praça da Luz', city: 'Centro - São Paulo / SP' },
+  { street: 'Shopping Anália Franco', city: 'Tatuapé - São Paulo / SP' },
+  { street: 'Shopping Eldorado', city: 'Pinheiros - São Paulo / SP' }
+];
+
 function setupAddressAutocomplete(inputId, dropdownId, fieldType) {
   const input = document.getElementById(inputId);
   const dropdown = document.getElementById(dropdownId);
   if (!input || !dropdown) return;
 
   let timer = null;
+
+  const renderItems = (items) => {
+    dropdown.innerHTML = '';
+    if (!items || items.length === 0) {
+      dropdown.classList.add('hidden');
+      return;
+    }
+    dropdown.classList.remove('hidden');
+
+    items.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'autocomplete-item';
+      div.innerHTML = `
+        <div class="item-icon">${fieldType === 'origin' ? '🟢' : '🔴'}</div>
+        <div>
+          <div class="street-name">${item.street}</div>
+          <div class="city-name">${item.city}</div>
+        </div>
+      `;
+      div.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        input.value = item.street;
+        dropdown.classList.add('hidden');
+        dropdown.innerHTML = '';
+        try { window.handleCalculateFareSubmit(); } catch(err) {}
+      };
+      dropdown.appendChild(div);
+    });
+  };
+
   input.addEventListener('input', (e) => {
     const query = e.target.value.trim();
     clearTimeout(timer);
 
-    if (query.length < 2) {
+    if (query.length < 1) {
       dropdown.classList.add('hidden');
       dropdown.innerHTML = '';
       return;
     }
 
+    // 1. Sugestões locais instantâneas (zero delay)
+    const localMatches = PRESET_SUGGESTIONS_DB.filter(s =>
+      s.street.toLowerCase().includes(query.toLowerCase()) ||
+      s.city.toLowerCase().includes(query.toLowerCase())
+    );
+
+    renderItems(localMatches);
+
+    // 2. Busca em tempo real na API do OpenStreetMap Nominatim
     timer = setTimeout(async () => {
       try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&countrycodes=br&limit=5&q=${encodeURIComponent(query)}`);
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&countrycodes=br&limit=6&q=${encodeURIComponent(query)}`);
         const results = await res.json();
 
-        dropdown.innerHTML = '';
         if (results && results.length > 0) {
-          dropdown.classList.remove('hidden');
-          results.forEach(item => {
+          const apiMatches = results.map(item => {
             const addr = item.address || {};
             const street = addr.road || addr.suburb || item.display_name.split(',')[0];
-            const city = addr.city || addr.town || 'São Paulo';
+            const city = addr.city || addr.town || addr.municipality || 'São Paulo';
             const stateName = addr.state || 'SP';
-
-            const div = document.createElement('div');
-            div.className = 'autocomplete-item';
-            div.innerHTML = `
-              <div class="item-icon">${fieldType === 'origin' ? '🟢' : '🔴'}</div>
-              <div>
-                <div class="street-name">${street}</div>
-                <div class="city-name">${city} - ${stateName}</div>
-              </div>
-            `;
-            div.onclick = () => {
-              input.value = `${street} - ${city}/${stateName}`;
-              dropdown.classList.add('hidden');
-              try { window.handleCalculateFareSubmit(); } catch(e) {}
+            return {
+              street: `${street}`,
+              city: `${city} / ${stateName}`
             };
-            dropdown.appendChild(div);
           });
-        } else {
-          dropdown.classList.add('hidden');
+
+          const combined = [...localMatches];
+          apiMatches.forEach(am => {
+            if (!combined.find(c => c.street.toLowerCase() === am.street.toLowerCase())) {
+              combined.push(am);
+            }
+          });
+
+          renderItems(combined.slice(0, 6));
         }
-      } catch (e) { dropdown.classList.add('hidden'); }
-    }, 350);
+      } catch (e) {}
+    }, 250);
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.classList.add('hidden');
+    }
   });
 }
 
