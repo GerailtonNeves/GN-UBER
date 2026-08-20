@@ -122,74 +122,103 @@
         <div id="mapDriver" class="map-container"></div>
       </div>
 
-      <!-- PAINEL DE CORRIDA ACEITA E EM ANDAMENTO PARA O MOTORISTA -->
-      <div id="cardDriverActiveRide" class="hidden" style="background: #fffdf5; border: 3px solid #ff9e00; border-radius: 16px; padding: 18px; margin-top: 14px; box-shadow: 0 10px 25px rgba(255, 158, 0, 0.2);">
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #fde68a; padding-bottom: 10px; margin-bottom: 12px;">
-          <h3 style="color: #d97706; font-size: 1.1rem; font-weight: 800;"><i class="fa-solid fa-car-side" style="color: #ff9e00;"></i> CORRIDA EM ANDAMENTO 99</h3>
-          <span id="driverActiveStatus" style="background: #10b981; color: #fff; padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 0.78rem;">🟡 Motorista a Caminho</span>
+      <!-- PAINEL DE CORRIDA ACEITA E EM ANDAMENTO PARA O MOTORISTA (DESIGN TOP DOS TOPS 99) -->
+      <div id="cardDriverActiveRide" class="hidden" style="background: #ffffff; border: 2px solid #f59e0b; border-radius: 20px; padding: 20px; margin-top: 16px; box-shadow: 0 14px 35px rgba(245, 158, 11, 0.18);">
+        
+        <!-- HEADER DA CORRIDA -->
+        <div style="display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #111827, #1f2937); padding: 14px 18px; border-radius: 14px; margin-bottom: 16px; box-shadow: 0 6px 15px rgba(0,0,0,0.15);">
+          <div>
+            <span style="color: #ff9e00; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; display: block;">PLATAFORMA OFICIAL 99</span>
+            <h3 style="color: #ffffff; font-size: 1.15rem; font-weight: 900; margin: 0;"><i class="fa-solid fa-car-side" style="color: #ff9e00;"></i> CORRIDA EM ANDAMENTO</h3>
+          </div>
+          <span id="driverActiveStatus" style="background: linear-gradient(135deg, #10b981, #059669); color: #fff; padding: 6px 14px; border-radius: 20px; font-weight: 800; font-size: 0.82rem; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);">
+            🟡 Motorista a Caminho
+          </span>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px;">
-          <div>
-            <small style="color: #64748b; font-weight: 700;">PASSAGEIRO:</small>
-            <div id="driverActivePassenger" style="font-size: 1.1rem; font-weight: 800; color: #111827;">Cliente 99</div>
+        <!-- METRICAS DE VALOR, DISTÂNCIA REAL E TEMPO -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 16px;">
+          <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 12px; padding: 12px; text-align: center;">
+            <small style="color: #047857; font-weight: 800; text-transform: uppercase; font-size: 0.7rem; display: block;">Valor a Receber</small>
+            <div id="driverActiveFare" style="font-size: 1.4rem; font-weight: 900; color: #059669;">R$ 18,50</div>
           </div>
-          <div>
-            <small style="color: #10b981; font-weight: 700;">🟢 EMBARQUE (COLETA):</small>
-            <div id="driverActiveOrigin" style="font-weight: 700; color: #111827;">MASP - Av. Paulista</div>
+
+          <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 12px; text-align: center;">
+            <small style="color: #1e40af; font-weight: 800; text-transform: uppercase; font-size: 0.7rem; display: block;">Distância Real (Ruas)</small>
+            <div id="driverActiveKm" style="font-size: 1.3rem; font-weight: 900; color: #2563eb;">🛣️ 4,2 km</div>
           </div>
-          <div>
-            <small style="color: #ef4444; font-weight: 700;">🔴 DESTINO FINAL:</small>
-            <div id="driverActiveDest" style="font-weight: 700; color: #111827;">Parque Ibirapuera</div>
+
+          <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 12px; text-align: center;">
+            <small style="color: #b45309; font-weight: 800; text-transform: uppercase; font-size: 0.7rem; display: block;">Tempo de Viagem</small>
+            <div id="driverActiveTime" style="font-size: 1.3rem; font-weight: 900; color: #d97706;">⏱️ 12 min</div>
           </div>
-          <div>
-            <small style="color: #d97706; font-weight: 700;">VALOR A RECEBER:</small>
-            <div id="driverActiveFare" style="font-size: 1.3rem; font-weight: 800; color: #10b981;">R$ 18,50</div>
+
+          <div style="background: #fdf2f8; border: 1px solid #fbcfe8; border-radius: 12px; padding: 12px; text-align: center;">
+            <small style="color: #be185d; font-weight: 800; text-transform: uppercase; font-size: 0.7rem; display: block;">Pagamento</small>
+            <div id="driverActivePayment" style="font-size: 1.1rem; font-weight: 900; color: #db2777;">⚡ PIX</div>
           </div>
         </div>
 
-        <!-- BOTÕES DE CONTATO E SUPORTE -->
-        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
-          <button onclick="window.callPassenger()" class="btn-secondary" style="flex: 1; font-size: 0.8rem; padding: 8px; background: #fff; border-color: #fde68a; font-weight: 700;">
+        <!-- ENDEREÇOS DE COLETA E DESTINO COM NUMERO DO IMÓVEL -->
+        <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 14px; padding: 14px; margin-bottom: 16px;">
+          <div style="margin-bottom: 10px;">
+            <small style="color: #6b7280; font-weight: 800; font-size: 0.75rem;">PASSAGEIRO / CLIENTE:</small>
+            <div id="driverActivePassenger" style="font-size: 1.1rem; font-weight: 900; color: #111827;">Cliente 99</div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+            <div style="background: #ffffff; border-left: 4px solid #10b981; padding: 10px 12px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.04);">
+              <small style="color: #10b981; font-weight: 800; font-size: 0.75rem;">🟢 EMBARQUE (LOCAL DE COLETA):</small>
+              <div id="driverActiveOrigin" style="font-weight: 800; color: #111827; font-size: 0.95rem; margin-top: 2px;">MASP - Av. Paulista, nº 1500</div>
+            </div>
+
+            <div style="background: #ffffff; border-left: 4px solid #ef4444; padding: 10px 12px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.04);">
+              <small style="color: #ef4444; font-weight: 800; font-size: 0.75rem;">🔴 DESTINO FINAL (ENTREGA):</small>
+              <div id="driverActiveDest" style="font-weight: 800; color: #111827; font-size: 0.95rem; margin-top: 2px;">Parque Ibirapuera, nº 250</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- GRUPO 1: BOTÕES DE COMUNICAÇÃO E GPS DO CELULAR -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-bottom: 14px;">
+          <button onclick="window.callPassenger()" class="btn-secondary" style="font-size: 0.8rem; padding: 10px; background: #ffffff; border: 1px solid #d1d5db; font-weight: 800; border-radius: 10px;">
             📞 Ligar p/ Cliente
           </button>
-          <button onclick="window.openChatWithPassenger()" class="btn-secondary" style="flex: 1; font-size: 0.8rem; padding: 8px; background: #fff; border-color: #fde68a; font-weight: 700;">
+          <button onclick="window.openChatWithPassenger()" class="btn-secondary" style="font-size: 0.8rem; padding: 10px; background: #ffffff; border: 1px solid #d1d5db; font-weight: 800; border-radius: 10px;">
             💬 Chat 99
           </button>
-          <button onclick="window.openSupport99()" class="btn-secondary" style="flex: 1; font-size: 0.8rem; padding: 8px; background: #fffbeb; color: #d97706; border-color: #fde68a; font-weight: 800;">
-            🛡️ Suporte 99 24h
+          <button type="button" onclick="window.openGPSNavigation('pickup')" class="btn-primary" style="background: #2563eb; color: #fff; font-size: 0.8rem; padding: 10px; font-weight: 800; border: none; border-radius: 10px;">
+            🗺️ GPS (Coleta)
           </button>
-        <!-- BOTÕES DE NAVEGAÇÃO DIRETA DE GPS DO CELULAR (GOOGLE MAPS / WAZE) -->
-        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-          <button type="button" onclick="window.openGPSNavigation('pickup')" class="btn-primary" style="flex: 1; background: #4285F4; font-size: 0.82rem; padding: 10px; font-weight: 800; border: none;">
-            🗺️ Abrir GPS do Celular (Coleta)
+          <button type="button" onclick="window.openGPSNavigation('destination')" class="btn-primary" style="background: #0284c7; color: #fff; font-size: 0.8rem; padding: 10px; font-weight: 800; border: none; border-radius: 10px;">
+            🚗 GPS (Destino)
           </button>
-          <button type="button" onclick="window.openGPSNavigation('destination')" class="btn-primary" style="flex: 1; background: #33CCFF; color: #111; font-size: 0.82rem; padding: 10px; font-weight: 800; border: none;">
-            🚗 Abrir GPS do Celular (Destino)
+          <button onclick="window.openSupport99()" class="btn-secondary" style="font-size: 0.8rem; padding: 10px; background: #fffbeb; color: #d97706; border: 1px solid #fde68a; font-weight: 800; border-radius: 10px;">
+            🛡️ Suporte 24h
           </button>
         </div>
 
-        <!-- BOTÕES DE AÇÕES DA CORRIDA E ETAPAS DE COLETA PELO MOTORISTA -->
-        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;">
-          <button id="btnDriverArrived" onclick="window.driverArrivedAtPickup()" class="btn-primary" style="flex: 1; background: #0284c7; font-size: 0.82rem; padding: 12px;">
-            📍 CHEGUEI AO EMBARQUE
+        <!-- GRUPO 2: BOTÕES DE ETAPAS DA VIAGEM DA ENTREGAS DA 99 -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; margin-bottom: 14px;">
+          <button id="btnDriverArrived" onclick="window.driverArrivedAtPickup()" class="btn-primary" style="background: #0284c7; font-size: 0.85rem; padding: 12px; font-weight: 800; border-radius: 10px;">
+            📍 1. CHEGUEI AO EMBARQUE
           </button>
-          <button id="btnDriverCollect" onclick="window.driverCollectPackage()" class="btn-success" style="flex: 1; font-size: 0.82rem; padding: 12px;">
-            📦 COLETAR ENCOMENDA
+          <button id="btnDriverCollect" onclick="window.driverCollectPackage()" class="btn-success" style="font-size: 0.85rem; padding: 12px; font-weight: 800; border-radius: 10px; background: #d97706; border: none;">
+            📦 2. COLETAR ENCOMENDA
           </button>
-          <button id="btnDriverCollected" onclick="window.driverPackageCollected()" class="btn-primary" style="flex: 1; background: linear-gradient(135deg, #ff9e00, #e68a00); font-size: 0.82rem; padding: 12px;">
-            ✅ COLETADO! ABRIR DESTINO
+          <button id="btnDriverCollected" onclick="window.driverPackageCollected()" class="btn-primary" style="background: linear-gradient(135deg, #ff9e00, #e68a00); font-size: 0.85rem; padding: 12px; font-weight: 800; border-radius: 10px;">
+            ✅ 3. COLETADO! ABRIR DESTINO
           </button>
-          <button id="btnDriverComplete" onclick="window.driverCompleteRide()" class="btn-primary" style="flex: 1; background: linear-gradient(135deg, #10b981, #059669); font-size: 0.82rem; padding: 12px;">
-            🏁 CONCLUIR VIAGEM & RECEBER
+          <button id="btnDriverComplete" onclick="window.driverCompleteRide()" class="btn-primary" style="background: linear-gradient(135deg, #10b981, #059669); font-size: 0.85rem; padding: 12px; font-weight: 900; border-radius: 10px;">
+            🏁 4. CONCLUIR VIAGEM & RECEBER
           </button>
         </div>
 
-        <!-- BOTAO DE SEGURAÇA EM CASO DE DESTINATARIO AUSENTE (DEVOLUÇÃO AO ORIGEM) -->
-        <div style="background: #fef2f2; border: 2px solid #fca5a5; border-radius: 12px; padding: 10px; text-align: center;">
-          <small style="color: #991b1b; font-weight: 800; display: block; margin-bottom: 6px;">⚠️ Ninguém para receber a entrega no local?</small>
-          <button type="button" onclick="window.driverRequestReturn()" class="btn-primary" style="background: #dc2626; color: #fff; width: 100%; font-size: 0.88rem; padding: 10px; font-weight: 800; border: none; border-radius: 8px;">
-            🚨 Destinatário Ausente / Não Encontrado (Solicitar Devolução ao Suporte)
+        <!-- GRUPO 3: AÇÃO DE SEGURANÇA EM CASO DE DESTINATARIO AUSENTE (DEVOLUÇÃO WHATSAPP) -->
+        <div style="background: #fef2f2; border: 1px solid #fca5a5; border-radius: 12px; padding: 12px; text-align: center;">
+          <small style="color: #991b1b; font-weight: 800; display: block; margin-bottom: 6px;">⚠️ Ninguém no local para receber a encomenda?</small>
+          <button type="button" onclick="window.driverRequestReturn()" class="btn-primary" style="background: #dc2626; color: #fff; width: 100%; font-size: 0.88rem; padding: 12px; font-weight: 800; border: none; border-radius: 8px; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);">
+            🚨 Destinatário Ausente / Não Encontrado (Solicitar Devolução no WhatsApp)
           </button>
         </div>
       </div>

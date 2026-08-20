@@ -303,20 +303,56 @@ function showRideDispatchToAllOnlineDrivers(ride) {
 }
 
 function handleRideAcceptedWinner(payload) {
+  stopSirenSound();
+  if (state.dispatchTimerInterval) clearInterval(state.dispatchTimerInterval);
+
+  const card = document.getElementById('modalRideDispatch');
+  if (card) card.classList.add('hidden');
+
   const activeDriverSelect = document.getElementById('selectActiveDriver');
   const myDriverId = activeDriverSelect ? activeDriverSelect.value : state.currentDriverId;
+  const isWinner = String(payload.driverId) === String(myDriverId);
 
-  if (String(payload.driverId) !== String(myDriverId)) {
-    stopSirenSound();
-    if (state.dispatchTimerInterval) clearInterval(state.dispatchTimerInterval);
-    const card = document.getElementById('modalRideDispatch');
-    if (card) card.classList.add('hidden');
-    showToast(`ℹ️ O motorista ${payload.driverName} aceitou esta entrega primeiro!`, 'info');
+  const ride = state.currentRide || payload;
+
+  if (isWinner && ride) {
+    const activeCard = document.getElementById('cardDriverActiveRide');
+    if (activeCard) activeCard.classList.remove('hidden');
+
+    const passNameElem = document.getElementById('driverActivePassenger');
+    const origElem = document.getElementById('driverActiveOrigin');
+    const destElem = document.getElementById('driverActiveDest');
+    const fareElem = document.getElementById('driverActiveFare');
+    const kmElem = document.getElementById('driverActiveKm');
+    const timeElem = document.getElementById('driverActiveTime');
+    const payElem = document.getElementById('driverActivePayment');
+    const statusElem = document.getElementById('driverActiveStatus');
+
+    const priceFormatted = `R$ ${(ride.price || 18.50).toFixed(2).replace('.', ',')}`;
+    const distText = `🛣️ ${(ride.distanceKm || 4.2).toFixed(1).replace('.', ',')} km`;
+    const timeText = `⏱️ ${ride.durationMinutes || 12} min`;
+
+    if (passNameElem) passNameElem.innerText = ride.passengerName || 'Cliente 99';
+    if (origElem) origElem.innerText = ride.origin?.name || 'MASP - Av. Paulista, nº 1500';
+    if (destElem) destElem.innerText = ride.destination?.name || 'Parque Ibirapuera, nº 250';
+    if (fareElem) fareElem.innerText = priceFormatted;
+    if (kmElem) kmElem.innerText = distText;
+    if (timeElem) timeElem.innerText = timeText;
+    if (payElem) payElem.innerText = ride.paymentMethodName || '⚡ PIX';
+
+    if (statusElem) {
+      statusElem.innerText = '🟡 Motorista a Caminho';
+      statusElem.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+    }
+
+    showToast(`✅ Você aceitou a corrida em primeiro lugar! Dirija-se ao local de coleta.`, 'success');
+  } else {
+    showToast(`⚠️ A corrida foi aceita em primeiro lugar por outro motorista (${payload.driverName || 'Frota 99'}).`, 'info');
   }
 
   const passStatus = document.getElementById('passengerStatus');
   if (passStatus) {
-    passStatus.innerText = `🚗 Motorista 99 (${payload.driverName}) Aceitou e está a caminho!`;
+    passStatus.innerText = `🚗 Motorista 99 (${payload.driverName || 'Frota'}) Aceitou e está a caminho!`;
     passStatus.style.background = 'rgba(16, 185, 129, 0.18)';
     passStatus.style.color = '#10b981';
   }
@@ -1571,6 +1607,105 @@ window.deleteDriver = function(driverId) {
   }
 };
 
+// ---------------- GEOCODING & AUTOCOMPLETE ----------------
+async function geocodeAddressText(query, type) {
+  const cleanQuery = query ? query.trim() : '';
+  if (!cleanQuery) return null;
+
+  try {
+    const searchUrl = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=br&limit=1&q=${encodeURIComponent(cleanQuery)}`;
+    const res = await fetch(searchUrl);
+    const data = await res.json();
+    if (data && data.length > 0) {
+      return {
+        name: cleanQuery,
+        lat: parseFloat(data[0].lat),
+        lng: parseFloat(data[0].lon)
+      };
+    }
+  } catch (err) {}
+
+  try {
+    const res2 = await fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=br&limit=1&q=${encodeURIComponent(cleanQuery + ', Brasil')}`);
+    const data2 = await res2.json();
+    if (data2 && data2.length > 0) {
+      return {
+        name: cleanQuery,
+        lat: parseFloat(data2[0].lat),
+        lng: parseFloat(data2[0].lon)
+      };
+    }
+  } catch (err) {}
+
+  const presetKeys = Object.keys(LOCATIONS);
+  for (let key of presetKeys) {
+    if (cleanQuery.toLowerCase().includes(LOCATIONS[key].name.toLowerCase())) {
+      return { ...LOCATIONS[key], name: cleanQuery };
+    }
+  }
+
+  return {
+    name: cleanQuery,
+    lat: -23.550520 + (type === 'origin' ? 0 : 0.03),
+    lng: -46.633309 + (type === 'origin' ? 0 : 0.03)
+  };
+}
+
+function setupAddressAutocomplete(inputId, dropdownId, fieldType) {
+  const input = document.getElementById(inputId);
+  const dropdown = document.getElementById(dropdownId);
+  if (!input || !dropdown) return;
+
+  let timer = null;
+  input.addEventListener('input', (e) => {
+    const query = e.target.value.trim();
+    clearTimeout(timer);
+
+    if (query.length < 2) {
+      dropdown.classList.add('hidden');
+      dropdown.innerHTML = '';
+      return;
+    }
+
+    timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&countrycodes=br&limit=5&q=${encodeURIComponent(query)}`);
+        const results = await res.json();
+
+        dropdown.innerHTML = '';
+        if (results && results.length > 0) {
+          dropdown.classList.remove('hidden');
+          results.forEach(item => {
+            const addr = item.address || {};
+            const street = addr.road || addr.suburb || item.display_name.split(',')[0];
+            const city = addr.city || addr.town || 'São Paulo';
+            const stateName = addr.state || 'SP';
+
+            const div = document.createElement('div');
+            div.className = 'autocomplete-item';
+            div.innerHTML = `
+              <div class="item-icon">${fieldType === 'origin' ? '🟢' : '🔴'}</div>
+              <div>
+                <div class="street-name">${street}</div>
+                <div class="city-name">${city} - ${stateName}</div>
+              </div>
+            `;
+            div.onclick = () => {
+              input.value = `${street} - ${city}/${stateName}`;
+              dropdown.classList.add('hidden');
+              try { window.handleCalculateFareSubmit(); } catch(e) {}
+            };
+            dropdown.appendChild(div);
+          });
+        } else {
+          dropdown.classList.add('hidden');
+        }
+      } catch (e) { dropdown.classList.add('hidden'); }
+    }, 350);
+  });
+}
+
+// ---------------- MAP PASSENGER FLEET DISPLAY ----------------
 let fleetMarkersPassenger = [];
 
 function renderOnlineFleetOnPassengerMap() {
@@ -1611,22 +1746,24 @@ function renderOnlineFleetOnPassengerMap() {
 }
 
 window.handleCalculateFareSubmit = async function() {
+  let originText = document.getElementById('inputOrigin')?.value?.trim();
+  let destText = document.getElementById('inputDestination')?.value?.trim();
+  const originNum = document.getElementById('inputOriginNumber')?.value?.trim();
+  const destNum = document.getElementById('inputDestinationNumber')?.value?.trim();
+
+  if (!originText || !destText) {
+    return;
+  }
+
   const btn = document.getElementById('btnCalculateFare');
   if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Traçando Rota por Ruas e Curvas...';
 
   try {
-    let originText = document.getElementById('inputOrigin')?.value?.trim();
-    let destText = document.getElementById('inputDestination')?.value?.trim();
+    const fullOriginText = `${originText}${originNum ? ', nº ' + originNum : ''}`;
+    const fullDestText = `${destText}${destNum ? ', nº ' + destNum : ''}`;
 
-    if (!originText) originText = LOCATIONS.MASP.name;
-    if (!destText) {
-      destText = LOCATIONS.IBIRAPUERA.name;
-      const destInput = document.getElementById('inputDestination');
-      if (destInput) destInput.value = LOCATIONS.IBIRAPUERA.name;
-    }
-
-    const origin = await geocodeAddressText(originText, 'origin');
-    const dest = await geocodeAddressText(destText, 'destination');
+    const origin = await geocodeAddressText(fullOriginText, 'origin');
+    const dest = await geocodeAddressText(fullDestText, 'destination');
 
     state.lastCalculatedOrigin = origin;
     state.lastCalculatedDestination = dest;
@@ -1685,46 +1822,69 @@ window.handleCalculateFareSubmit = async function() {
     console.error('Erro no cálculo de tarifa:', err);
     const cardBooking = document.getElementById('cardBooking');
     if (cardBooking) cardBooking.classList.remove('hidden');
-    showToast('🛣️ Tarifa calculada com rota estimativa!', 'success');
   } finally {
     if (btn) btn.innerHTML = '<i class="fa-solid fa-calculator"></i> Recalcular Rota & Tarifa 99';
   }
 };
 
-window.handleRequestRideSubmit = function() {
+window.handleRequestRideSubmit = async function() {
+  const originText = document.getElementById('inputOrigin')?.value?.trim();
+  const destText = document.getElementById('inputDestination')?.value?.trim();
+  const originNum = document.getElementById('inputOriginNumber')?.value?.trim();
+  const destNum = document.getElementById('inputDestinationNumber')?.value?.trim();
+
+  if (!originText || !destText) {
+    showToast('⚠️ Por favor digite o Endereço de Origem e o Endereço de Destino!', 'warning');
+    alert('Por favor digite o Endereço de Origem e o Endereço de Destino antes de solicitar a viagem!');
+    return;
+  }
+
   const btn = document.getElementById('btnRequestRide');
-  if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Procurando Motoristas 99...';
+  if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mapeando Endereço Exato & Solicitando...';
 
   try {
+    const fullOriginText = `${originText}${originNum ? ', nº ' + originNum : ''}`;
+    const fullDestText = `${destText}${destNum ? ', nº ' + destNum : ''}`;
+
+    let origObj = state.lastCalculatedOrigin;
+    let destObj = state.lastCalculatedDestination;
+
+    if (!origObj || !origObj.name || !origObj.name.toLowerCase().includes(originText.toLowerCase())) {
+      origObj = await geocodeAddressText(fullOriginText, 'origin');
+    } else if (originNum && !origObj.name.includes('nº')) {
+      origObj.name = `${origObj.name}, nº ${originNum}`;
+    }
+
+    if (!destObj || !destObj.name || !destObj.name.toLowerCase().includes(destText.toLowerCase())) {
+      destObj = await geocodeAddressText(fullDestText, 'destination');
+    } else if (destNum && !destObj.name.includes('nº')) {
+      destObj.name = `${destObj.name}, nº ${destNum}`;
+    }
+
+    state.lastCalculatedOrigin = origObj;
+    state.lastCalculatedDestination = destObj;
+
+    const routeData = await fetchOSRMRoute(origObj, destObj);
+
     const currentPsg = getPassengerProfile();
     const name = currentPsg?.name || 'Cliente 99';
-    const dist = state.fareEstimate ? state.fareEstimate.distanceKm.toFixed(1).replace('.', ',') : '4,2';
+    const dist = routeData.distanceKm ? routeData.distanceKm.toFixed(1).replace('.', ',') : '4,2';
 
     const paySelect = document.getElementById('selectPayment') || document.getElementById('selectPaymentMethod');
     const payMethodKey = paySelect ? paySelect.value : 'pix';
     const payMethodName = payMethodKey === 'cash' ? '💵 Dinheiro ao Motorista' : (payMethodKey === 'credit_card' ? '💳 Cartão 99' : '⚡ PIX');
 
-    const originNum = document.getElementById('inputOriginNumber')?.value?.trim();
-    const destNum = document.getElementById('inputDestinationNumber')?.value?.trim();
-
-    const origObj = state.lastCalculatedOrigin || { ...LOCATIONS.MASP };
-    const destObj = state.lastCalculatedDestination || { ...LOCATIONS.IBIRAPUERA };
-
-    if (originNum && !origObj.name.includes('nº')) {
-      origObj.name = `${origObj.name}, nº ${originNum}`;
-    }
-    if (destNum && !destObj.name.includes('nº')) {
-      destObj.name = `${destObj.name}, nº ${destNum}`;
-    }
+    const options = calculateFareCategories(routeData.distanceKm, routeData.durationMinutes);
+    const selectedOpt = options.find(o => o.categoryKey === (state.selectedCategory || 'pop')) || options[0];
 
     const ridePayload = {
       id: `ride-${Date.now()}`,
       passengerName: name,
       origin: origObj,
       destination: destObj,
-      price: state.fareEstimate?.options?.[0]?.price || 18.50,
-      distanceKm: state.fareEstimate?.distanceKm || 4.2,
-      durationMinutes: state.fareEstimate?.durationMinutes || 12,
+      price: selectedOpt ? selectedOpt.price : 18.50,
+      distanceKm: routeData.distanceKm,
+      durationMinutes: routeData.durationMinutes,
       paymentMethod: payMethodKey,
       paymentMethodName: payMethodName
     };
