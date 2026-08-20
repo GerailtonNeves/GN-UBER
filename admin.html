@@ -118,6 +118,32 @@
             </button>
           </div>
         </form>
+      <!-- MÓDULO 3: CADASTRO DE ATENDENTE DE SUPORTE WHATSAPP -->
+      <div class="admin-box" style="background: #f0fdf4; border: 2px solid #a7f3d0; border-radius: 16px; padding: 20px; margin-top: 20px;">
+        <h3 style="font-size: 1.1rem; font-weight: 800; color: #047857; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+          <i class="fa-brands fa-whatsapp" style="color: #10b981; font-size: 1.3rem;"></i> 🛡️ Configurar Atendente de Suporte WhatsApp 99
+        </h3>
+        <p style="font-size: 0.82rem; color: #065f46; margin-bottom: 14px;">
+          Configure o nome e o número de WhatsApp do suporte oficial. Quando o motorista solicitar devolução por destinatário ausente, o sistema enviará a mensagem diretamente para este WhatsApp!
+        </p>
+
+        <form id="formAdminSupport" onsubmit="window.handleSaveAdminSupport(event)" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; align-items: end;">
+          <div>
+            <label style="font-weight: 700; font-size: 0.85rem; color: #065f46;">Nome do Atendente de Suporte:</label>
+            <input type="text" id="inputAdminSupportName" value="Suporte Oficial 99 24h" style="width: 100%; padding: 10px; border: 1px solid #6ee7b7; border-radius: 8px; font-weight: 800;" required>
+          </div>
+
+          <div>
+            <label style="font-weight: 700; font-size: 0.85rem; color: #065f46;">WhatsApp do Suporte (DDD + Número):</label>
+            <input type="text" id="inputAdminSupportPhone" placeholder="Ex: 5511987654321" value="5511999998888" style="width: 100%; padding: 10px; border: 1px solid #6ee7b7; border-radius: 8px; font-weight: 800;" required>
+          </div>
+
+          <div>
+            <button type="submit" class="btn-primary" style="width: 100%; padding: 12px; font-weight: 900; font-size: 0.9rem; background: linear-gradient(135deg, #10b981, #047857); border: none;">
+              💾 SALVAR WHATSAPP DE SUPORTE
+            </button>
+          </div>
+        </form>
       </div>
 
       <!-- MÓDULO 2: ZONAS PROMOCIONAIS & PREÇO DINÂMICO PARALELO PARA MOTORISTAS E CLIENTES -->

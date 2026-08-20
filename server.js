@@ -36,7 +36,11 @@ let systemConfig = {
     delivery: { name: '📦 99Entrega Flash', multiplier: 0.80, icon: '📦' },
     taxi: { name: '🚕 99Táxi Oficial', multiplier: 1.35, icon: '🚕' }
   },
-  promoZones: []
+  promoZones: [],
+  supportPerson: {
+    name: 'Suporte Oficial 99 24h',
+    phone: '5511999998888'
+  }
 };
 
 // BANCO DE DADOS LIMPO SEM DADOS FAKES (APENAS MOTORISTAS CADASTRADOS PELO USUÁRIO)
@@ -60,7 +64,19 @@ app.post('/api/config/fares', (req, res) => {
 
   saveDataToDisk();
   io.emit('config_updated', systemConfig);
-  res.json({ message: 'Tarifas e taxas atualizadas com sucesso!', systemConfig });
+  res.json({ message: 'Tarifas atualizadas com sucesso!', systemConfig });
+});
+
+// ATUALIZAR CONTATO DO ATENDENTE DE SUPORTE WHATSAPP
+app.post('/api/config/support', (req, res) => {
+  const { name, phone } = req.body;
+  if (!systemConfig.supportPerson) systemConfig.supportPerson = {};
+  if (name) systemConfig.supportPerson.name = name;
+  if (phone) systemConfig.supportPerson.phone = String(phone).replace(/\D/g, '');
+
+  saveDataToDisk();
+  io.emit('config_updated', systemConfig);
+  res.json({ message: 'Atendente de Suporte salvo com sucesso!', supportPerson: systemConfig.supportPerson });
 });
 
 // ADICIONAR OU ATUALIZAR ZONA PROMOCIONAL / DINÂMICA

@@ -1893,6 +1893,37 @@ function renderAdminZonesTable(zones) {
   `).join('');
 }
 
+window.handleSaveAdminSupport = function(evt) {
+  if (evt) evt.preventDefault();
+  const name = document.getElementById('inputAdminSupportName')?.value?.trim();
+  const phone = document.getElementById('inputAdminSupportPhone')?.value?.trim();
+
+  if (!name || !phone) {
+    showToast('⚠️ Por favor informe o Nome e o WhatsApp do Suporte!', 'warning');
+    return;
+  }
+
+  const cleanPhone = phone.replace(/\D/g, '');
+  try {
+    localStorage.setItem('99_SUPPORT_NAME', name);
+    localStorage.setItem('99_SUPPORT_PHONE', cleanPhone);
+  } catch(e) {}
+
+  if (BACKEND_URL) {
+    fetch(`${BACKEND_URL}/api/config/support`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, phone: cleanPhone })
+    }).then(r => r.json()).then(() => {
+      showToast('🛡️ Contato do Atendente de Suporte salvo com sucesso!', 'success');
+    }).catch(() => {
+      showToast('🛡️ Suporte salvo localmente!', 'info');
+    });
+  } else {
+    showToast('🛡️ Suporte salvo localmente!', 'info');
+  }
+};
+
 // ---------------- FLUXO DE DEVOLUÇÃO DE ENCOMENDA (DESTINATÁRIO AUSENTE) ----------------
 window.driverRequestReturn = function() {
   if (!state.currentRide) {
@@ -1900,30 +1931,58 @@ window.driverRequestReturn = function() {
     return;
   }
 
-  const rideId = state.currentRide.id;
-  state.currentRide.returnStatus = 'REQUESTED';
-  state.currentRide.status = 'RETURN_REQUESTED';
+  const ride = state.currentRide;
+  const rideId = ride.id;
+  ride.returnStatus = 'REQUESTED';
+  ride.status = 'RETURN_REQUESTED';
 
   const statusElem = document.getElementById('driverActiveStatus');
   if (statusElem) {
-    statusElem.innerText = '🚨 Devolução Solicitada ao Suporte';
+    statusElem.innerText = '🚨 Devolução Solicitada ao Suporte (WhatsApp)';
     statusElem.style.background = '#dc2626';
   }
 
   const passStatus = document.getElementById('passengerStatus');
   if (passStatus) {
-    passStatus.innerText = '⚠️ Destinatário ausente no destino! Devolução solicitada ao Suporte 99...';
+    passStatus.innerText = '⚠️ Destinatário ausente no destino! Motorista contatando o Suporte 99...';
     passStatus.style.background = 'rgba(239, 68, 68, 0.2)';
     passStatus.style.color = '#dc2626';
   }
 
-  showToast('🚨 Solicitação de Devolução enviada ao Suporte 99! Aguarde a aprovação.', 'warning');
-
-  // Notificar backend
+  // Notificar backend sem tocar sirene
   if (BACKEND_URL) {
     fetch(`${BACKEND_URL}/api/rides/${rideId}/return-request`, { method: 'POST' }).catch(() => {});
   }
-  broadcastRideEvent('RETURN_RIDE_REQUESTED', state.currentRide);
+  broadcastRideEvent('RETURN_RIDE_REQUESTED', ride);
+
+  // ABRIR WHATSAPP DIRETO DO ATENDENTE DE SUPORTE CADASTRADO
+  const currentDriver = getDriverProfile() || { name: 'Motorista 99' };
+  const savedPhone = localStorage.getItem('99_SUPPORT_PHONE') || '5511999998888';
+  const cleanPhone = savedPhone.replace(/\D/g, '');
+
+  const rideIdText = ride.id || 'Sem ID';
+  const psgName = ride.passengerName || 'Cliente 99';
+  const drvName = currentDriver.name || 'Motorista';
+  const origName = ride.origin?.name || 'Local de Coleta';
+  const destName = ride.destination?.name || 'Local de Entrega';
+  const fareVal = (ride.price || 18.50).toFixed(2).replace('.', ',');
+
+  const messageText = `🚨 *SOLICITAÇÃO DE DEVOLUÇÃO 99*\n\n` +
+    `🆔 *ID da Corrida:* ${rideIdText}\n` +
+    `👤 *Cliente:* ${psgName}\n` +
+    `🚗 *Motorista:* ${drvName}\n` +
+    `🟢 *Local de Coleta (Origem):* ${origName}\n` +
+    `🔴 *Local de Destino (Ausente):* ${destName}\n` +
+    `💵 *Valor:* R$ ${fareVal}\n\n` +
+    `⚠️ *Motivo:* Cheguei ao local de entrega e NÃO HÁ NINGUÉM para receber a encomenda. Solicito autorização do suporte para retornar ao endereço de origem!`;
+
+  const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(messageText)}`;
+
+  showToast('📲 Redirecionando para o WhatsApp do Suporte 99...', 'info');
+
+  try {
+    window.open(waUrl, '_blank');
+  } catch(e) {}
 };
 
 window.adminApproveReturn = function(rideId) {
