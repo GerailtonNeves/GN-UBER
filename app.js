@@ -162,14 +162,82 @@ window.simulateIncomingRideTest = function() {
   showToast('⚡ Simulação de Corrida disparada com Sirene!', 'info');
 };
 
+// ---------------- CONTROLE MESTRE DO SISTEMA ONLINE / OFFLINE ----------------
+window.isSystemMasterOnline = function() {
+  const status = localStorage.getItem('99_SYSTEM_MASTER_STATUS');
+  return status !== 'offline';
+};
+
+window.updateMasterSystemToggleUI = function() {
+  const isOnline = window.isSystemMasterOnline();
+  const btns = document.querySelectorAll('#btnMasterSystemToggle');
+  btns.forEach(btn => {
+    if (isOnline) {
+      btn.className = 'btn-master-system online';
+      btn.style.background = '#111827';
+      btn.style.color = '#ffffff';
+      btn.style.borderColor = '#10b981';
+      btn.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.4)';
+      btn.innerHTML = `<i class="fa-solid fa-circle blink" style="color: #10b981;"></i> SISTEMA <span style="color: #10b981; font-weight: 900; font-size: 1.05rem; letter-spacing: 1px;">ONLINE</span>`;
+    } else {
+      btn.className = 'btn-master-system offline';
+      btn.style.background = '#111827';
+      btn.style.color = '#ffffff';
+      btn.style.borderColor = '#ef4444';
+      btn.style.boxShadow = '0 0 15px rgba(239, 68, 68, 0.4)';
+      btn.innerHTML = `<i class="fa-solid fa-power-off" style="color: #ef4444;"></i> SISTEMA <span style="color: #ef4444; font-weight: 900; font-size: 1.05rem; letter-spacing: 1px;">OFFLINE</span>`;
+    }
+  });
+};
+
+window.toggleMasterSystemStatus = function() {
+  const isCurrentlyOnline = window.isSystemMasterOnline();
+  const newStatus = isCurrentlyOnline ? 'offline' : 'online';
+
+  try {
+    localStorage.setItem('99_SYSTEM_MASTER_STATUS', newStatus);
+  } catch(e) {}
+
+  if (BACKEND_URL) {
+    fetch(`${BACKEND_URL}/api/config/system-status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ systemStatus: newStatus })
+    }).catch(() => {});
+  }
+
+  broadcastRideEvent('SYSTEM_MASTER_STATUS_CHANGED', { systemStatus: newStatus });
+  window.updateMasterSystemToggleUI();
+
+  if (newStatus === 'offline') {
+    stopSirenSound();
+    const card = document.getElementById('modalRideDispatch');
+    if (card) card.classList.add('hidden');
+    showToast('🔴 SISTEMA 99 DESLIGADO E OFFLINE! Chamadas pausadas.', 'warning');
+    alert('🔴 SISTEMA 99 DESLIGADO E OFFLINE!\n\nEnquanto o sistema estiver Offline, nenhuma solicitação de corrida tocará alarme ou será recebida pelos motoristas.');
+  } else {
+    showToast('🟢 SISTEMA 99 ATIVADO E ONLINE! Pronto para receber corridas.', 'success');
+  }
+};
+
 function initCrossTabDispatchListeners() {
   const handleEvent = (data) => {
     if (!data || !data.eventType) return;
 
     const isDriverPage = !!document.getElementById('mapDriver');
 
-    if (data.eventType === 'NEW_RIDE_REQUESTED') {
-      if (isDriverPage) {
+    if (data.eventType === 'SYSTEM_MASTER_STATUS_CHANGED') {
+      if (data.payload?.systemStatus) {
+        try { localStorage.setItem('99_SYSTEM_MASTER_STATUS', data.payload.systemStatus); } catch(e) {}
+      }
+      window.updateMasterSystemToggleUI();
+      if (!window.isSystemMasterOnline()) {
+        stopSirenSound();
+        const card = document.getElementById('modalRideDispatch');
+        if (card) card.classList.add('hidden');
+      }
+    } else if (data.eventType === 'NEW_RIDE_REQUESTED') {
+      if (isDriverPage && window.isSystemMasterOnline()) {
         console.log('📡 Nova corrida recebida via Broadcast:', data.payload);
         showRideDispatchToAllOnlineDrivers(data.payload);
       }
@@ -188,10 +256,18 @@ function initCrossTabDispatchListeners() {
         const data = JSON.parse(evt.newValue);
         const payload = data.payload || data;
         const isDriverPage = !!document.getElementById('mapDriver');
-        if (isDriverPage && payload && payload.id) {
+        if (isDriverPage && payload && payload.id && window.isSystemMasterOnline()) {
           showRideDispatchToAllOnlineDrivers(payload);
         }
       } catch(e) {}
+    }
+    if (evt.key === '99_SYSTEM_MASTER_STATUS') {
+      window.updateMasterSystemToggleUI();
+      if (!window.isSystemMasterOnline()) {
+        stopSirenSound();
+        const card = document.getElementById('modalRideDispatch');
+        if (card) card.classList.add('hidden');
+      }
     }
   });
 }
@@ -260,6 +336,14 @@ setInterval(() => {
 }, 800);
 
 function showRideDispatchToAllOnlineDrivers(ride) {
+  if (!window.isSystemMasterOnline()) {
+    console.log('🔴 Sistema Mestre 99 está OFFLINE. Chamada de corrida ignorada e sirene pausada.');
+    stopSirenSound();
+    const card = document.getElementById('modalRideDispatch');
+    if (card) card.classList.add('hidden');
+    return;
+  }
+
   state.currentRide = ride;
   playSirenSound();
 
@@ -879,45 +963,37 @@ window.openGPSNavigation = function(type = 'pickup', app = 'google_maps') {
 
   if (state.currentRide) {
     targetObj = type === 'pickup' ? state.currentRide.origin : state.currentRide.destination;
-  } else {
-    targetObj = type === 'pickup' ? (state.lastCalculatedOrigin || LOCATIONS.MASP) : (state.lastCalculatedDestination || LOCATIONS.IBIRAPUERA);
+  } else if (type === 'pickup' && state.lastCalculatedOrigin) {
+    targetObj = state.lastCalculatedOrigin;
+  } else if (type === 'destination' && state.lastCalculatedDestination) {
+    targetObj = state.lastCalculatedDestination;
   }
 
-  const label = type === 'pickup' ? 'Local de Coleta / Embarque' : 'Endereço de Entrega Final';
-
-  let rawAddressName = targetObj ? (targetObj.name || targetObj.address || '') : '';
-  const targetLat = targetObj ? targetObj.lat : null;
-  const targetLng = targetObj ? targetObj.lng : null;
-
-  if (!rawAddressName && targetLat && targetLng) {
-    rawAddressName = `${targetLat},${targetLng}`;
-  } else if (!rawAddressName) {
-    rawAddressName = type === 'pickup' ? 'MASP - Av. Paulista, nº 1500' : 'Parque Ibirapuera, nº 250';
+  if (!targetObj || (!targetObj.name && !targetObj.address)) {
+    showToast('⚠️ Nenhum endereço cadastrado para esta corrida.', 'warning');
+    return;
   }
 
+  let rawAddressName = targetObj.name || targetObj.address || '';
   const encodedQuery = encodeURIComponent(rawAddressName);
   let navUrl = '';
 
+  const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
+
   if (app === 'waze') {
-    if (targetLat && targetLng) {
-      navUrl = `https://waze.com/ul?ll=${targetLat},${targetLng}&navigate=yes&q=${encodedQuery}`;
-    } else {
-      navUrl = `https://waze.com/ul?q=${encodedQuery}&navigate=yes`;
-    }
+    navUrl = `https://waze.com/ul?q=${encodedQuery}&navigate=yes`;
   } else {
-    // Google Maps com pesquisa direta pelo ENDEREÇO EXATO digitado com numero
-    if (targetLat && targetLng && rawAddressName) {
-      navUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedQuery}&travelmode=driving`;
-    } else {
-      navUrl = `https://www.google.com/maps/search/?api=1&query=${encodedQuery}`;
-    }
+    // UNIVERSAL GOOGLE MAPS DESTINATION ADDRESS SCHEME (Navegação Exata pelo Endereço Digitado)
+    navUrl = `https://maps.google.com/maps?daddr=${encodedQuery}`;
   }
 
-  showToast(`🗺️ GPS com Endereço Exato abrindo ${app === 'waze' ? 'Waze' : 'Google Maps'} para ${rawAddressName}...`, 'info');
+  showToast(`🗺️ Abrindo GPS para: ${rawAddressName}...`, 'info');
 
   try {
     window.open(navUrl, '_blank');
-  } catch(e) {}
+  } catch(e) {
+    window.location.assign(navUrl);
+  }
 };
 
 window.driverPackageCollected = function() {

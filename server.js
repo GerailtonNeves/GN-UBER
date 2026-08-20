@@ -79,6 +79,15 @@ app.post('/api/config/support', (req, res) => {
   res.json({ message: 'Atendente de Suporte salvo com sucesso!', supportPerson: systemConfig.supportPerson });
 });
 
+// ATUALIZAR STATUS MESTRE DO SISTEMA (ONLINE / OFFLINE)
+app.post('/api/config/system-status', (req, res) => {
+  const { systemStatus } = req.body;
+  if (systemStatus) systemConfig.systemStatus = systemStatus;
+  saveDataToDisk();
+  io.emit('config_updated', systemConfig);
+  res.json({ message: 'Status mestre do sistema atualizado!', systemStatus: systemConfig.systemStatus });
+});
+
 // ADICIONAR OU ATUALIZAR ZONA PROMOCIONAL / DINÂMICA
 app.post('/api/config/promo-zones', (req, res) => {
   const { name, surgeFactor, driverBonus, passengerDiscount } = req.body;
