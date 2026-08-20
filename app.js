@@ -442,12 +442,14 @@ window.enableDriverAudio = function() {
   showToast('🔊 Alarme de Áudio & Tela Acesa Liberados com Sucesso!', 'success');
 };
 
+let sirenAutoStopTimer = null;
+
 function playSirenSound() {
   stopSirenSound();
 
-  // 0. Ativar Vibração Tátil no Celular do Motorista
+  // 0. Ativar Vibração Tátil no Celular do Motorista (Max 5s)
   if (typeof navigator !== 'undefined' && navigator.vibrate) {
-    try { navigator.vibrate([600, 250, 600, 250, 1200]); } catch(e) {}
+    try { navigator.vibrate([500, 200, 500, 200, 500, 200, 1000]); } catch(e) {}
   }
 
   // 1. Tocar via Elemento de Áudio HTML5 Nativo
@@ -498,9 +500,19 @@ function playSirenSound() {
   } catch (err) {
     console.warn('Erro no sintetizador de sirene:', err);
   }
+
+  // 3. PARAR A SIRENE AUTOMATICAMENTE APÓS EXATAMENTE 5 SEGUNDOS
+  if (sirenAutoStopTimer) clearTimeout(sirenAutoStopTimer);
+  sirenAutoStopTimer = setTimeout(() => {
+    stopSirenSound();
+  }, 5000);
 }
 
 function stopSirenSound() {
+  if (sirenAutoStopTimer) {
+    clearTimeout(sirenAutoStopTimer);
+    sirenAutoStopTimer = null;
+  }
   if (globalSirenAudioElem) {
     try {
       globalSirenAudioElem.pause();
